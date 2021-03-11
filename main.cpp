@@ -56,21 +56,23 @@ int main()
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
         {
-            unit.rotate(3);
+            unit.addTorque(4);
         }
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
         {
-            unit.rotate(-3);
+            unit.addTorque(-4);
         }
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W))
         {
-            unit.moveForwardBackward(8);
+            unit.addAccelerationStraight(7);
         }
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S))
         {
-            unit.moveForwardBackward(-8);
+            unit.addAccelerationStraight(-7);
         }
+
+        unit.update();
 
 
         window.clear();

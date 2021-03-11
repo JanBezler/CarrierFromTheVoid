@@ -7,7 +7,15 @@ void Unit::draw(sf::RenderTarget& target, sf::RenderStates state) const
 
 Unit::Unit(sf::Vector2f position, std::vector<sf::Vector2f> points)
 {
-    maxSpeed = 0;
+    drag = 1.05;
+    maxSpeed = 10;
+    accelerationSideways = 0;
+    accelerationStraight = 0;
+    torque = 0;
+
+    velocity = {0,0};
+    rotationSpeed = 0;
+
     int vectorSize = points.size();
     shape.setPointCount(vectorSize);
     for (int i = 0; i < vectorSize; ++i) shape.setPoint(i, points[i]);
@@ -19,7 +27,43 @@ Unit::Unit(sf::Vector2f position, std::vector<sf::Vector2f> points)
 
 void Unit::update()
 {
+    if((std::abs(velocity.x) < maxSpeed) && (std::abs(velocity.y) < maxSpeed))
+    {
+        float rotation = getRotation();
+        sf::Vector2f acceleration = {cosf(rotation * M_PI / 180.0) * accelerationStraight / 10 , sinf(rotation * M_PI / 180.0) * accelerationStraight / 10};
+        velocity += acceleration;
+    }
 
+    if((std::abs(rotationSpeed*3) < maxSpeed))
+    {
+        rotationSpeed += torque / 10;
+    }
+
+    move(velocity);
+    rotate(rotationSpeed);
+
+    velocity.y /= drag;
+    velocity.x /= drag;
+    rotationSpeed /= drag;
+
+    torque = 0;
+    accelerationSideways = 0;
+    accelerationStraight = 0;
+}
+
+void Unit::addTorque(float torque_)
+{
+    torque += torque_;
+}
+
+void Unit::addAccelerationSideways(float acceleration)
+{
+    accelerationSideways += acceleration;
+}
+
+void Unit::addAccelerationStraight(float acceleration)
+{
+    accelerationStraight += acceleration;
 }
 
 void Unit::rotate(float degree)

@@ -7,9 +7,14 @@
 class Unit: public sf::Drawable {
 
 private:
+    float drag;
+
     sf::ConvexShape shape;
     sf::Vector2f velocity;
-    sf::Vector2f acceleration;
+    float rotationSpeed;
+    float accelerationStraight;
+    float accelerationSideways;
+    float torque;
     float maxSpeed;
 
     void draw(sf::RenderTarget& target, sf::RenderStates state) const override;
@@ -20,11 +25,16 @@ public:
     ~Unit() = default;
 
     void update();
+
     void rotate(float degree);
     void moveForwardBackward(float distance);
     void moveLeftRight(float distance);
     void move(sf::Vector2f offset);
     void setPosition(sf::Vector2f position);
+
+    void addTorque(float torque);
+    void addAccelerationStraight(float acceleration);
+    void addAccelerationSideways(float acceleration);
 
 
 
