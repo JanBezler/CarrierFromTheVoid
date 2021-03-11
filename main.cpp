@@ -9,6 +9,9 @@ int main()
     sf::RenderWindow window(sf::VideoMode(1700, 800), "SFML works!", sf::Style::Default, settings);
     window.setFramerateLimit(60);
 
+    sf::View view;
+    view.reset(sf::FloatRect(0.f, 0.f, 1700.f, 800.f));
+
 
     std::vector<sf::Vector2f> points{sf::Vector2f(208,0),
                                      sf::Vector2f(192,32),
@@ -26,6 +29,9 @@ int main()
 
     Unit unit = Unit(sf::Vector2f(200, 200), points);
 
+    Unit sample = Unit(sf::Vector2f(300, 300), points);
+
+
     std::vector<Bullet> bullets;
 
 
@@ -39,6 +45,9 @@ int main()
             if (event.type == sf::Event::Closed)
                 window.close();
         }
+
+        view.setCenter(unit.getPosition());
+        view.setRotation(unit.getRotation()+90);
 
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space))
@@ -72,17 +81,30 @@ int main()
             unit.addAccelerationStraight(-7);
         }
 
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E))
+        {
+            unit.addAccelerationSideways(3);
+        }
+        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q))
+        {
+            unit.addAccelerationSideways(-3);
+        }
+
         unit.update();
+
+
 
 
         window.clear();
         window.draw(unit);
+        window.draw(sample);
         for (auto& bullet : bullets)
         {
             bullet.update();
             window.draw(bullet);
         }
 
+        window.setView(view);
         window.display();
     }
 

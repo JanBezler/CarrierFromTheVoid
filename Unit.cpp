@@ -22,7 +22,7 @@ Unit::Unit(sf::Vector2f position, std::vector<sf::Vector2f> points)
     shape.setPosition(position);
     shape.setScale(0.5,0.5);
     shape.setOrigin(shape.getGlobalBounds().width,0);
-    shape.setRotation(10);
+    shape.setRotation(0);
 }
 
 void Unit::update()
@@ -30,13 +30,14 @@ void Unit::update()
     if((std::abs(velocity.x) < maxSpeed) && (std::abs(velocity.y) < maxSpeed))
     {
         float rotation = getRotation();
-        sf::Vector2f acceleration = {cosf(rotation * M_PI / 180.0) * accelerationStraight / 10 , sinf(rotation * M_PI / 180.0) * accelerationStraight / 10};
+        sf::Vector2f acceleration = {cosf(rotation * M_PI / 180.0) * accelerationStraight / 10 + sinf(-rotation * M_PI / 180.0) * accelerationSideways / 10,
+                                     sinf(rotation * M_PI / 180.0) * accelerationStraight / 10 + cosf(-rotation * M_PI / 180.0) * accelerationSideways / 10};
         velocity += acceleration;
     }
 
     if((std::abs(rotationSpeed*3) < maxSpeed))
     {
-        rotationSpeed += torque / 10;
+        rotationSpeed += torque / 20;
     }
 
     move(velocity);
