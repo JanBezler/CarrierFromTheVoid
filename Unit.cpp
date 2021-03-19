@@ -7,7 +7,7 @@ void Unit::draw(sf::RenderTarget& target, sf::RenderStates state) const
 
 Unit::Unit(sf::Vector2f position, std::vector<sf::Vector2f> points)
 {
-    drag = 1.05;
+    drag = 1.045;
     maxSpeed = 10;
     accelerationSideways = 0;
     accelerationStraight = 0;
@@ -81,7 +81,7 @@ void Unit::moveForwardBackward(float distance)
 void Unit::moveLeftRight(float distance)
 {
     float rotation = getRotation();
-    shape.move(sf::Vector2f{sinf(rotation * M_PI / 180.0) * distance, cosf(rotation * M_PI / 180.0) * distance});
+    shape.move(sf::Vector2f{sinf(-rotation * M_PI / 180.0) * distance, cosf(-rotation * M_PI / 180.0) * distance});
 }
 
 void Unit::move(sf::Vector2f offset)

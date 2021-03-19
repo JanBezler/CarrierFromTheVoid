@@ -4,6 +4,8 @@
 
 int main()
 {
+
+
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
     sf::RenderWindow window(sf::VideoMode(1700, 800), "SFML works!", sf::Style::Default, settings);
@@ -13,7 +15,7 @@ int main()
     view.reset(sf::FloatRect(0.f, 0.f, 1700.f, 800.f));
 
 
-    std::vector<sf::Vector2f> points{sf::Vector2f(208,0),
+    std::vector<sf::Vector2f> points{sf::Vector2f(308,0),
                                      sf::Vector2f(192,32),
                                      sf::Vector2f(128,96),
                                      sf::Vector2f(96,32),
@@ -28,8 +30,15 @@ int main()
                                      sf::Vector2f(192,-32)};
 
     Unit unit = Unit(sf::Vector2f(200, 200), points);
+    unit.rotate(-90);
+
 
     Unit sample = Unit(sf::Vector2f(300, 300), points);
+    Unit sample1 = Unit(sf::Vector2f(300, 600), points);
+    sf::CircleShape pppp = sf::CircleShape(10,10);
+
+
+    view.setCenter(unit.getPosition().x , unit.getPosition().y-300);
 
 
     std::vector<Bullet> bullets;
@@ -46,8 +55,20 @@ int main()
                 window.close();
         }
 
-        view.setCenter(unit.getPosition());
-        view.setRotation(unit.getRotation()+90);
+
+
+        float angle = unit.getRotation() - view.getRotation() - 90;
+        sf::Vector2f deltaPosition = unit.getPosition() - view.getCenter();
+
+        view.move(deltaPosition.x  + 300*sin(-angle * M_PI / 180.0), deltaPosition.y  + 300*cos(-angle * M_PI / 180.0));
+
+        //view.setCenter(deltaPosition.x, deltaPosition.y);
+
+        pppp.setPosition(view.getCenter());
+
+        float oldrotation = view.getRotation();
+        view.setRotation(unit.getRotation() + 90);
+
 
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space))
@@ -59,8 +80,6 @@ int main()
             }
         }
         else readyToShoot = true;
-
-
 
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
@@ -90,6 +109,10 @@ int main()
             unit.addAccelerationSideways(-3);
         }
 
+        window.setView(view);
+
+        view.setRotation(oldrotation);
+
         unit.update();
 
 
@@ -98,13 +121,18 @@ int main()
         window.clear();
         window.draw(unit);
         window.draw(sample);
+        window.draw(sample1);
+        //window.draw(pppp);
+
         for (auto& bullet : bullets)
         {
             bullet.update();
             window.draw(bullet);
         }
 
-        window.setView(view);
+
+
+
         window.display();
     }
 
