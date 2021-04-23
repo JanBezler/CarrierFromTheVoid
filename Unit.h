@@ -8,8 +8,7 @@ class Unit: public sf::Drawable {
 
 private:
     float drag;
-
-    sf::ConvexShape shape;
+    sf::Sprite shape;
     sf::Vector2f velocity;
     float rotationSpeed;
     float accelerationStraight;
@@ -20,7 +19,7 @@ private:
     void draw(sf::RenderTarget& target, sf::RenderStates state) const override;
 
 public:
-    Unit(sf::Vector2f position, std::vector<sf::Vector2f> points);
+    Unit(sf::Vector2f position, const sf::Texture &texture);
     Unit(){delete(this);}
     ~Unit() = default;
 
@@ -41,6 +40,7 @@ public:
 
     sf::Vector2f getPosition();
     sf::Vector2f getSize();
+    sf::Vector2f getVelocity();
     float getRadius();
     float getRotation();
     float left();

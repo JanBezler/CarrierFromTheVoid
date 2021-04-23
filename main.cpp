@@ -15,30 +15,37 @@ int main()
     view.reset(sf::FloatRect(0.f, 0.f, 1700.f, 800.f));
 
 
-    std::vector<sf::Vector2f> points{sf::Vector2f(308,0),
-                                     sf::Vector2f(192,32),
-                                     sf::Vector2f(128,96),
-                                     sf::Vector2f(96,32),
-                                     sf::Vector2f(32,64),
-                                     sf::Vector2f(32,32),
-                                     sf::Vector2f(16,16),
-                                     sf::Vector2f(16,-16),
-                                     sf::Vector2f(32,-32),
-                                     sf::Vector2f(32,-64),
-                                     sf::Vector2f(96,-32),
-                                     sf::Vector2f(128,-96),
-                                     sf::Vector2f(192,-32)};
+    sf::Texture shipTexture;
+    if (!shipTexture.loadFromFile("assets/Textures/playerShip1_blue.png"))
+    {
+        std::cout << "Could not load player texture";
+        return 0;
+    }
+    shipTexture.setSmooth(true);
 
-    Unit unit = Unit(sf::Vector2f(200, 200), points);
-    unit.rotate(-90);
+    sf::Texture bulletTexture;
+    if (!bulletTexture.loadFromFile("assets/Textures/Lasers/laserBlue01.png"))
+    {
+        std::cout << "Could not load bullet texture";
+        return 0;
+    }
+    bulletTexture.setSmooth(true);
+
+    sf::Texture backgroundTexture;
+    if (!backgroundTexture.loadFromFile("assets/Textures/Backgrounds/blue.png"))
+    {
+        std::cout << "Could not load bullet texture";
+        return 0;
+    }
+
+    sf::Sprite backgroundSprite;
+    backgroundSprite.setTexture(backgroundTexture);
+
+    Unit player = Unit(sf::Vector2f(200, 200), shipTexture);
 
 
-    Unit sample = Unit(sf::Vector2f(300, 300), points);
-    Unit sample1 = Unit(sf::Vector2f(300, 600), points);
-    sf::CircleShape pppp = sf::CircleShape(10,10);
-
-
-    view.setCenter(unit.getPosition().x , unit.getPosition().y-300);
+    float playerCameraOffset = 320;
+    view.setCenter(player.getPosition().x , player.getPosition().y-playerCameraOffset);
 
 
     std::vector<Bullet> bullets;
@@ -57,17 +64,13 @@ int main()
 
 
 
-        float angle = unit.getRotation() - view.getRotation() - 90;
-        sf::Vector2f deltaPosition = unit.getPosition() - view.getCenter();
+        float angle = player.getRotation() - view.getRotation() ;
+        sf::Vector2f deltaPosition = player.getPosition() - view.getCenter();
 
-        view.move(deltaPosition.x  + 300*sin(-angle * M_PI / 180.0), deltaPosition.y  + 300*cos(-angle * M_PI / 180.0));
-
-        //view.setCenter(deltaPosition.x, deltaPosition.y);
-
-        pppp.setPosition(view.getCenter());
+        view.move(deltaPosition.x  - playerCameraOffset*sin(-angle * M_PI / 180.0), deltaPosition.y  - playerCameraOffset*cos(-angle * M_PI / 180.0));
 
         float oldrotation = view.getRotation();
-        view.setRotation(unit.getRotation() + 90);
+        view.setRotation(player.getRotation());
 
 
 
@@ -75,7 +78,7 @@ int main()
         {
             if (readyToShoot)
             {
-                bullets.insert(bullets.begin(), Bullet(unit, 14, 60));
+                bullets.emplace_back(Bullet(player, 15, bulletTexture));
                 readyToShoot = false;
             }
         }
@@ -84,54 +87,57 @@ int main()
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
         {
-            unit.addTorque(4);
+            player.addTorque(4);
         }
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
         {
-            unit.addTorque(-4);
+            player.addTorque(-4);
         }
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W))
         {
-            unit.addAccelerationStraight(7);
+            player.addAccelerationStraight(7);
         }
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S))
         {
-            unit.addAccelerationStraight(-7);
+            player.addAccelerationStraight(-7);
         }
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E))
         {
-            unit.addAccelerationSideways(3);
+            player.addAccelerationSideways(3);
         }
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q))
         {
-            unit.addAccelerationSideways(-3);
+            player.addAccelerationSideways(-3);
         }
 
         window.setView(view);
 
         view.setRotation(oldrotation);
-
-        unit.update();
-
-
-
-
         window.clear();
-        window.draw(unit);
-        window.draw(sample);
-        window.draw(sample1);
-        //window.draw(pppp);
+
+        unsigned int backgroundSize = 256;
+
+        for (unsigned int i=0; i<static_cast<int>(window.getSize().x/backgroundSize)+1; i+=backgroundSize)
+        {
+            for (unsigned int j=0; j<static_cast<int>(window.getSize().y/backgroundSize)+1; j+=backgroundSize)
+            {
+                backgroundSprite.setPosition(view.getCenter()+sf::Vector2f<unsigned int>(i,j))
+                window.draw(backgroundSprite);
+            }
+        }
+
+
+
+        player.update();
+        window.draw(player);
 
         for (auto& bullet : bullets)
         {
             bullet.update();
             window.draw(bullet);
         }
-
-
-
 
         window.display();
     }

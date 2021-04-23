@@ -9,14 +9,13 @@
 class Bullet: public sf::Drawable {
 
 private:
-    sf::CircleShape shape;
-    float bulletSpeed;
+    sf::Sprite shape;
     sf::Vector2f velocity;
 
     void draw(sf::RenderTarget& target, sf::RenderStates state) const override;
 
 public:
-    Bullet(Unit owner, float radius, float bulletSpeed, float scaleY = 0.17f);
+    Bullet(Unit owner, float bulletSpeed, const sf::Texture &texture);
     Bullet() = delete;
     ~Bullet() = default;
 

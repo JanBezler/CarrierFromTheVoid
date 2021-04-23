@@ -5,7 +5,7 @@ void Unit::draw(sf::RenderTarget& target, sf::RenderStates state) const
     target.draw(this->shape, state);
 }
 
-Unit::Unit(sf::Vector2f position, std::vector<sf::Vector2f> points)
+Unit::Unit(sf::Vector2f position, const sf::Texture &texture)
 {
     drag = 1.045;
     maxSpeed = 10;
@@ -16,13 +16,11 @@ Unit::Unit(sf::Vector2f position, std::vector<sf::Vector2f> points)
     velocity = {0,0};
     rotationSpeed = 0;
 
-    int vectorSize = points.size();
-    shape.setPointCount(vectorSize);
-    for (int i = 0; i < vectorSize; ++i) shape.setPoint(i, points[i]);
+    shape.setTexture(texture);
+
+
     shape.setPosition(position);
-    shape.setScale(0.5,0.5);
-    shape.setOrigin(shape.getGlobalBounds().width,0);
-    shape.setRotation(0);
+    shape.setOrigin(shape.getGlobalBounds().width/2,shape.getGlobalBounds().height/2);
 }
 
 void Unit::update()
@@ -30,8 +28,10 @@ void Unit::update()
     if((std::abs(velocity.x) < maxSpeed) && (std::abs(velocity.y) < maxSpeed))
     {
         float rotation = getRotation();
-        sf::Vector2f acceleration = {cosf(rotation * M_PI / 180.0) * accelerationStraight / 10 + sinf(-rotation * M_PI / 180.0) * accelerationSideways / 10,
-                                     sinf(rotation * M_PI / 180.0) * accelerationStraight / 10 + cosf(-rotation * M_PI / 180.0) * accelerationSideways / 10};
+
+        sf::Vector2f acceleration = {sinf(rotation * M_PI / 180.0) * accelerationStraight / 10 + cosf(rotation * M_PI / 180.0) * accelerationSideways / 10,
+        -cosf(rotation * M_PI / 180.0) * accelerationStraight / 10 + sinf(rotation * M_PI / 180.0) * accelerationSideways / 10};
+
         velocity += acceleration;
     }
 
@@ -103,6 +103,11 @@ sf::Vector2f Unit::getSize()
 sf::Vector2f Unit::getPosition()
 {
     return shape.getPosition();
+}
+
+sf::Vector2f Unit::getVelocity()
+{
+    return velocity;
 }
 
 float Unit::getRadius()
