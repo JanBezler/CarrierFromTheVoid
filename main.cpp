@@ -1,18 +1,31 @@
 #include <SFML/Graphics.hpp>
 #include "Bullet.h"
+#include "Background.h"
 #include <iostream>
+#include <stdlib.h>
+#include "AssetsLoader.cpp"
+#include <algorithm>
+
 
 int main()
 {
-
-
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
-    sf::RenderWindow window(sf::VideoMode(1700, 800), "SFML works!", sf::Style::Default, settings);
+
+    sf::RenderWindow window(sf::VideoMode(1920, 1080), "CarrierFromTheVoid", sf::Style::Fullscreen, settings);
+    window.setMouseCursorVisible(false);
+
     window.setFramerateLimit(60);
 
+    sf::Vector2i windowCenter {static_cast<int>(window.getSize().x/2),static_cast<int>(window.getSize().y/2)};
+
     sf::View view;
-    view.reset(sf::FloatRect(0.f, 0.f, 1700.f, 800.f));
+
+    float zoom = 0;
+
+    view.reset(sf::FloatRect(0.f*zoom, 0.f*zoom, 1920.f*(zoom+1), 1080.f*(zoom+1)));
+
+    sf::Mouse::setPosition(windowCenter, window);
 
 
     sf::Texture shipTexture;
@@ -32,23 +45,33 @@ int main()
     bulletTexture.setSmooth(true);
 
     sf::Texture backgroundTexture;
-    if (!backgroundTexture.loadFromFile("assets/Textures/Backgrounds/blue.png"))
+    if (!backgroundTexture.loadFromFile("assets/Textures/Backgrounds/star.png"))
     {
         std::cout << "Could not load bullet texture";
         return 0;
     }
-
-    sf::Sprite backgroundSprite;
-    backgroundSprite.setTexture(backgroundTexture);
-
-    Unit player = Unit(sf::Vector2f(200, 200), shipTexture);
+    backgroundTexture.setSmooth(true);
 
 
-    float playerCameraOffset = 320;
+    Unit player = Unit(sf::Vector2f(0, 0), shipTexture);
+
+
+    float playerCameraOffset = 440;
     view.setCenter(player.getPosition().x , player.getPosition().y-playerCameraOffset);
 
 
     std::vector<Bullet> bullets;
+    std::vector<sf::Sprite> backgroundStars;
+    std::vector<Background> backgrounds;
+
+    for (int i=-2000; i<=2000; i+=2000)
+    {
+        for (int j=-2000; j<=2000; j+=2000)
+        {
+            backgrounds.emplace_back(Background(sf::Vector2f(i,j),backgroundTexture));
+        }
+    }
+
 
 
     bool readyToShoot = true;
@@ -60,6 +83,11 @@ int main()
         {
             if (event.type == sf::Event::Closed)
                 window.close();
+        }
+
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape))
+        {
+            window.close();
         }
 
 
@@ -78,21 +106,21 @@ int main()
         {
             if (readyToShoot)
             {
-                bullets.emplace_back(Bullet(player, 15, bulletTexture));
+                bullets.emplace_back(Bullet(player, 20, bulletTexture));
                 readyToShoot = false;
             }
         }
         else readyToShoot = true;
 
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
-        {
-            player.addTorque(4);
-        }
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
-        {
-            player.addTorque(-4);
-        }
+//        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E))
+//        {
+//            player.addTorque(1 );
+//        }
+//        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q))
+//        {
+//            player.addTorque(-1);
+//        }
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W))
         {
@@ -103,41 +131,66 @@ int main()
             player.addAccelerationStraight(-7);
         }
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E))
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
         {
-            player.addAccelerationSideways(3);
+            player.addAccelerationSideways(4);
         }
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q))
+        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
         {
-            player.addAccelerationSideways(-3);
+            player.addAccelerationSideways(-4);
         }
+
+
+
+        float mouseCenterOffset = sf::Mouse::getPosition(window).x - windowCenter.x;
+
+//        if (mouseCenterOffset < -200) mouseCenterOffset = -200;
+//        else if (mouseCenterOffset > 200) mouseCenterOffset = 200;
+//        if (mouseCenterOffset < 100 && mouseCenterOffset > -100)
+//        {
+//            mouseCenterOffset /= 2;
+//        }
+
+        player.addTorque(mouseCenterOffset/70);
+
+        if (mouseCenterOffset > 0)
+        {
+            if (mouseCenterOffset > 222) sf::Mouse::setPosition(sf::Vector2i(windowCenter.x+222,window.getSize().y/2), window);
+            else sf::Mouse::setPosition(sf::Vector2i(sf::Mouse::getPosition(window).x-3-mouseCenterOffset/60,window.getSize().y/2), window);
+        }
+        if (mouseCenterOffset < 0)
+        {
+            if (mouseCenterOffset < -222) sf::Mouse::setPosition(sf::Vector2i(windowCenter.x-222,window.getSize().y/2), window);
+            else sf::Mouse::setPosition(sf::Vector2i(sf::Mouse::getPosition(window).x+3-mouseCenterOffset/60,window.getSize().y/2), window);
+        }
+
+        mouseCenterOffset = 0;
+
 
         window.setView(view);
 
         view.setRotation(oldrotation);
-        window.clear();
 
-        unsigned int backgroundSize = 256;
+        window.clear(sf::Color(42,45,51));
 
-        for (unsigned int i=0; i<static_cast<int>(window.getSize().x/backgroundSize)+1; i+=backgroundSize)
+        for (auto it = backgrounds.begin(); it != backgrounds.end(); ++it)
         {
-            for (unsigned int j=0; j<static_cast<int>(window.getSize().y/backgroundSize)+1; j+=backgroundSize)
-            {
-                backgroundSprite.setPosition(view.getCenter()+sf::Vector2f<unsigned int>(i,j))
-                window.draw(backgroundSprite);
-            }
+//            if((abs(abs(it->getPosition().x)-abs(player.getPosition().x)) > 2000) && (abs(abs(it->getPosition().y)-abs(player.getPosition().y)) > 2000))
+//            {
+//                backgrounds.erase(it);
+//            }
+            window.draw(*it);
         }
 
-
-
-        player.update();
-        window.draw(player);
 
         for (auto& bullet : bullets)
         {
             bullet.update();
             window.draw(bullet);
         }
+
+        player.update();
+        window.draw(player);
 
         window.display();
     }

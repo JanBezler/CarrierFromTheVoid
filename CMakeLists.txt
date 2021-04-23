@@ -3,7 +3,7 @@ project(CarrierFromTheVoid)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(CarrierFromTheVoid main.cpp Bullet.cpp Bullet.h Unit.cpp Unit.h ForceField.cpp ForceField.h Effect.cpp Effect.h)
+add_executable(CarrierFromTheVoid main.cpp Bullet.cpp Bullet.h Unit.cpp Unit.h ForceField.cpp ForceField.h Effect.cpp Effect.h AssetsLoader.cpp Background.cpp Background.h)
 
 set(SFML_ROOT c:/SFML) # SFML directory
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake_modules") # FindSFML.cmake directory
