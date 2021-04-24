@@ -30,6 +30,7 @@ public:
     void moveLeftRight(float distance);
     void move(sf::Vector2f offset);
     void setPosition(sf::Vector2f position);
+    void setRotation(float degree);
 
     void addTorque(float torque);
     void addAccelerationStraight(float acceleration);

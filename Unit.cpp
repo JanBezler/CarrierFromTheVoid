@@ -94,6 +94,11 @@ void Unit::setPosition(sf::Vector2f position)
     shape.setPosition(position);
 }
 
+void Unit::setRotation(float degree)
+{
+    shape.setRotation(degree);
+}
+
 
 sf::Vector2f Unit::getSize()
 {

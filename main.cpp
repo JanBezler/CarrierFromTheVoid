@@ -3,8 +3,8 @@
 #include "Background.h"
 #include <iostream>
 #include <stdlib.h>
-#include "AssetsLoader.cpp"
 #include <algorithm>
+#include <list>
 
 
 int main()
@@ -31,23 +31,39 @@ int main()
     sf::Texture shipTexture;
     if (!shipTexture.loadFromFile("assets/Textures/playerShip1_blue.png"))
     {
-        std::cout << "Could not load player texture";
+        std::cout << "Could not load shipTexture texture";
         return 0;
     }
     shipTexture.setSmooth(true);
 
-    sf::Texture bulletTexture;
-    if (!bulletTexture.loadFromFile("assets/Textures/Lasers/laserBlue01.png"))
+    sf::Texture enemyTexture;
+    if (!enemyTexture.loadFromFile("assets/Textures/playerShip2_orange.png"))
     {
-        std::cout << "Could not load bullet texture";
+        std::cout << "Could not load enemyTexture texture";
         return 0;
     }
-    bulletTexture.setSmooth(true);
+    enemyTexture.setSmooth(true);
+
+    sf::Texture playerBulletTexture;
+    if (!playerBulletTexture.loadFromFile("assets/Textures/Lasers/laserBlue01.png"))
+    {
+        std::cout << "Could not load playerBulletTexture texture";
+        return 0;
+    }
+    playerBulletTexture.setSmooth(true);
+
+    sf::Texture enemyBulletTexture;
+    if (!enemyBulletTexture.loadFromFile("assets/Textures/Lasers/laserRed07.png"))
+    {
+        std::cout << "Could not load enemyBulletTexture texture";
+        return 0;
+    }
+    enemyBulletTexture.setSmooth(true);
 
     sf::Texture backgroundTexture;
     if (!backgroundTexture.loadFromFile("assets/Textures/Backgrounds/star.png"))
     {
-        std::cout << "Could not load bullet texture";
+        std::cout << "Could not load backgroundTexture texture";
         return 0;
     }
     backgroundTexture.setSmooth(true);
@@ -56,23 +72,26 @@ int main()
     Unit player = Unit(sf::Vector2f(0, 0), shipTexture);
 
 
-    float playerCameraOffset = 440;
+
+
+    float playerCameraOffset = 300;
     view.setCenter(player.getPosition().x , player.getPosition().y-playerCameraOffset);
 
 
-    std::vector<Bullet> bullets;
+    std::vector<std::pair<Bullet,unsigned int>> bullets;
     std::vector<sf::Sprite> backgroundStars;
     std::vector<Background> backgrounds;
+    std::vector<Unit> enemies;
 
-    for (int i=-2000; i<=2000; i+=2000)
+    float squaresAroundPlayer = 2;
+
+    for (int i=-2000*squaresAroundPlayer; i<=2000*squaresAroundPlayer; i+=2000)
     {
-        for (int j=-2000; j<=2000; j+=2000)
+        for (int j=-2000*squaresAroundPlayer; j<=2000*squaresAroundPlayer; j+=2000)
         {
             backgrounds.emplace_back(Background(sf::Vector2f(i,j),backgroundTexture));
         }
     }
-
-
 
     bool readyToShoot = true;
 
@@ -106,7 +125,7 @@ int main()
         {
             if (readyToShoot)
             {
-                bullets.emplace_back(Bullet(player, 20, bulletTexture));
+                bullets.emplace_back(Bullet(player, 20, playerBulletTexture),0);
                 readyToShoot = false;
             }
         }
@@ -128,7 +147,7 @@ int main()
         }
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S))
         {
-            player.addAccelerationStraight(-7);
+            player.addAccelerationStraight(-4);
         }
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
@@ -140,16 +159,14 @@ int main()
             player.addAccelerationSideways(-4);
         }
 
+        if (enemies.size()<10)
+        {
+            enemies.emplace_back(Unit(sf::Vector2f(-2000 + rand() % 4000, -2000 + rand() % 4000), enemyTexture));
+        }
+
 
 
         float mouseCenterOffset = sf::Mouse::getPosition(window).x - windowCenter.x;
-
-//        if (mouseCenterOffset < -200) mouseCenterOffset = -200;
-//        else if (mouseCenterOffset > 200) mouseCenterOffset = 200;
-//        if (mouseCenterOffset < 100 && mouseCenterOffset > -100)
-//        {
-//            mouseCenterOffset /= 2;
-//        }
 
         player.addTorque(mouseCenterOffset/70);
 
@@ -175,24 +192,53 @@ int main()
 
         for (auto it = backgrounds.begin(); it != backgrounds.end(); ++it)
         {
-//            if((abs(abs(it->getPosition().x)-abs(player.getPosition().x)) > 2000) && (abs(abs(it->getPosition().y)-abs(player.getPosition().y)) > 2000))
-//            {
-//                backgrounds.erase(it);
-//            }
             window.draw(*it);
+            if((abs(abs(it->getPosition().x)-abs(player.getPosition().x)) > 2000) && (abs(abs(it->getPosition().y)-abs(player.getPosition().y)) > 2000))
+            {
+                //backgrounds.erase(it);
+            }
         }
 
 
-        for (auto& bullet : bullets)
+
+
+        for (auto it = bullets.begin(); it != bullets.end(); ++it)
         {
-            bullet.update();
-            window.draw(bullet);
+            it->first.update();
+            window.draw(it->first);
+            it->second++;
+            if (it->second > 300) bullets.erase(it);
         }
 
         player.update();
         window.draw(player);
 
+        for (auto it = enemies.begin(); it != enemies.end(); ++it)
+        {
+            //enemies.erase(it);
+            float wantedRotation = atan2f(player.getPosition().y-it->getPosition().y, player.getPosition().x-it->getPosition().x) * 180 /M_PI + 90;
+            float enemyRotation = it->getRotation();
+            if (enemyRotation>180) enemyRotation = enemyRotation-360;
+            if (wantedRotation>180) wantedRotation = wantedRotation-360;
+
+            if (enemyRotation<wantedRotation) it->addTorque(3);
+            else it->addTorque(-3);
+            if ((abs(player.getPosition().y-it->getPosition().y) > 700) || (abs(player.getPosition().x-it->getPosition().x) > 700))
+            {
+                it->addAccelerationStraight(rand() % 9);
+            }
+            it->update();
+
+            if (!(rand() % 30)) bullets.emplace_back(Bullet(*it,20,enemyBulletTexture),0);
+            window.draw(*it);
+
+        }
+
+
         window.display();
+
+
+
     }
 
     return 0;
