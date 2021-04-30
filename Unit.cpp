@@ -117,7 +117,7 @@ sf::Vector2f Unit::getVelocity()
 
 float Unit::getRadius()
 {
-    return sqrtf(powf(shape.getGlobalBounds().width, 2.0) + powf(shape.getGlobalBounds().height, 2)) / 2;
+    return (right()-left())/2;
 }
 
 float Unit::getRotation()

@@ -3,6 +3,7 @@
 
 #include <SFML/Graphics.hpp>
 #include "Unit.h"
+#include <stdlib.h>
 #include <cmath>
 
 
@@ -20,6 +21,7 @@ public:
     ~Bullet() = default;
 
     sf::Vector2f getPosition();
+    void setPosition(sf::Vector2f position);
     void update();
 };
 

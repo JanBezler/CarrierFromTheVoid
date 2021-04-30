@@ -1,10 +1,38 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include "Bullet.h"
 #include "Background.h"
 #include <iostream>
 #include <stdlib.h>
-#include <algorithm>
-#include <list>
+
+enum unitType
+{
+    Player,
+    Enemy,
+    Neutral
+};
+
+enum enemyType
+{
+    light,
+    medium,
+    heavy
+};
+
+struct bulletElement
+{
+    Bullet bullet;
+    int clock;
+    unitType ownerType;
+};
+
+struct enemyElement
+{
+    Unit unit;
+    int hp;
+    enemyType type;
+};
+
 
 
 int main()
@@ -28,6 +56,17 @@ int main()
     sf::Mouse::setPosition(windowCenter, window);
 
 
+    sf::RectangleShape healthBar = sf::RectangleShape(sf::Vector2f(20,360));
+    sf::RectangleShape healthStatus = sf::RectangleShape(sf::Vector2f(20,360));
+    healthBar.setOrigin(160,850);
+    healthBar.setOutlineColor(sf::Color(20,20,20,180));
+    healthBar.setFillColor(sf::Color(30,30,30,160));
+    healthBar.setOutlineThickness(4);
+    healthStatus.setFillColor(sf::Color(250,30,50,180));
+    healthStatus.setOrigin(160,850);
+
+    float healthPoints = 360;
+
     sf::Texture shipTexture;
     if (!shipTexture.loadFromFile("assets/Textures/playerShip1_blue.png"))
     {
@@ -37,11 +76,12 @@ int main()
     shipTexture.setSmooth(true);
 
     sf::Texture enemyTexture;
-    if (!enemyTexture.loadFromFile("assets/Textures/playerShip2_orange.png"))
+    if (!enemyTexture.loadFromFile("assets/Textures/Enemies/enemyRed5.png"))
     {
         std::cout << "Could not load enemyTexture texture";
         return 0;
     }
+
     enemyTexture.setSmooth(true);
 
     sf::Texture playerBulletTexture;
@@ -68,6 +108,20 @@ int main()
     }
     backgroundTexture.setSmooth(true);
 
+    sf::Music bulletSound;
+    if (!bulletSound.openFromFile("assets/Sound/sfx_laser1.ogg"))
+    {
+        std::cout << "Could not load bulletSound sound";
+        return 0;
+    }
+
+    sf::Music enemyBulletSound;
+    if (!enemyBulletSound.openFromFile("assets/Sound/sfx_laser2.ogg"))
+    {
+        std::cout << "Could not load enemyBulletSound sound";
+        return 0;
+    }
+
 
     Unit player = Unit(sf::Vector2f(0, 0), shipTexture);
 
@@ -78,12 +132,11 @@ int main()
     view.setCenter(player.getPosition().x , player.getPosition().y-playerCameraOffset);
 
 
-    std::vector<std::pair<Bullet,unsigned int>> bullets;
-    std::vector<sf::Sprite> backgroundStars;
+    std::vector<bulletElement> bullets;
     std::vector<Background> backgrounds;
-    std::vector<Unit> enemies;
+    std::vector<enemyElement> enemies;
 
-    float squaresAroundPlayer = 2;
+    float squaresAroundPlayer = 1;
 
     for (int i=-2000*squaresAroundPlayer; i<=2000*squaresAroundPlayer; i+=2000)
     {
@@ -109,37 +162,20 @@ int main()
             window.close();
         }
 
-
-
-        float angle = player.getRotation() - view.getRotation() ;
-        sf::Vector2f deltaPosition = player.getPosition() - view.getCenter();
-
-        view.move(deltaPosition.x  - playerCameraOffset*sin(-angle * M_PI / 180.0), deltaPosition.y  - playerCameraOffset*cos(-angle * M_PI / 180.0));
-
-        float oldrotation = view.getRotation();
-        view.setRotation(player.getRotation());
-
-
-
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space))
         {
             if (readyToShoot)
             {
-                bullets.emplace_back(Bullet(player, 20, playerBulletTexture),0);
+                bulletSound.stop();
+                bullets.emplace_back(bulletElement{Bullet(player, 20, playerBulletTexture),0,unitType::Player});
+                bulletSound.play();
+
+
                 readyToShoot = false;
             }
         }
         else readyToShoot = true;
 
-
-//        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E))
-//        {
-//            player.addTorque(1 );
-//        }
-//        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q))
-//        {
-//            player.addTorque(-1);
-//        }
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W))
         {
@@ -161,7 +197,7 @@ int main()
 
         if (enemies.size()<10)
         {
-            enemies.emplace_back(Unit(sf::Vector2f(-2000 + rand() % 4000, -2000 + rand() % 4000), enemyTexture));
+            enemies.emplace_back(enemyElement{Unit(sf::Vector2f(-2000 + rand() % 4000, -2000 + rand() % 4000), enemyTexture),30,enemyType::medium});
         }
 
 
@@ -180,8 +216,24 @@ int main()
             if (mouseCenterOffset < -222) sf::Mouse::setPosition(sf::Vector2i(windowCenter.x-222,window.getSize().y/2), window);
             else sf::Mouse::setPosition(sf::Vector2i(sf::Mouse::getPosition(window).x+3-mouseCenterOffset/60,window.getSize().y/2), window);
         }
-
         mouseCenterOffset = 0;
+
+
+        float angle = player.getRotation() - view.getRotation() ;
+        sf::Vector2f deltaPosition = player.getPosition() - view.getCenter();
+
+        view.move(deltaPosition.x  - playerCameraOffset*sin(-angle * M_PI / 180.0), deltaPosition.y  - playerCameraOffset*cos(-angle * M_PI / 180.0));
+
+        float oldrotation = view.getRotation();
+        view.setRotation(player.getRotation());
+
+
+        if (healthPoints<0) healthPoints = 0;
+        healthBar.setRotation(player.getRotation()-90);
+        healthBar.setPosition(player.getPosition());
+        healthStatus.setSize(sf::Vector2f(20,healthPoints));
+        healthStatus.setRotation(player.getRotation()-90);
+        healthStatus.setPosition(player.getPosition());
 
 
         window.setView(view);
@@ -204,36 +256,71 @@ int main()
 
         for (auto it = bullets.begin(); it != bullets.end(); ++it)
         {
-            it->first.update();
-            window.draw(it->first);
-            it->second++;
-            if (it->second > 300) bullets.erase(it);
+            it->bullet.update();
+            window.draw(it->bullet);
+            it->clock++;
+            if (it->clock > 300) it = bullets.erase(it);
         }
 
         player.update();
         window.draw(player);
 
+
         for (auto it = enemies.begin(); it != enemies.end(); ++it)
         {
-            //enemies.erase(it);
-            float wantedRotation = atan2f(player.getPosition().y-it->getPosition().y, player.getPosition().x-it->getPosition().x) * 180 /M_PI + 90;
-            float enemyRotation = it->getRotation();
+            float wantedRotation = atan2f(player.getPosition().y-it->unit.getPosition().y, player.getPosition().x-it->unit.getPosition().x) * 180 /M_PI + 90;
+            float enemyRotation = it->unit.getRotation();
             if (enemyRotation>180) enemyRotation = enemyRotation-360;
             if (wantedRotation>180) wantedRotation = wantedRotation-360;
 
-            if (enemyRotation<wantedRotation) it->addTorque(3);
-            else it->addTorque(-3);
-            if ((abs(player.getPosition().y-it->getPosition().y) > 700) || (abs(player.getPosition().x-it->getPosition().x) > 700))
+            if (enemyRotation<wantedRotation) it->unit.addTorque(3);
+            else it->unit.addTorque(-3);
+            if ((abs(player.getPosition().y-it->unit.getPosition().y) > 600) || (abs(player.getPosition().x-it->unit.getPosition().x) > 600))
             {
-                it->addAccelerationStraight(rand() % 9);
+                it->unit.addAccelerationStraight(rand() % 6);
             }
-            it->update();
+            it->unit.update();
 
-            if (!(rand() % 30)) bullets.emplace_back(Bullet(*it,20,enemyBulletTexture),0);
-            window.draw(*it);
+            if (!(rand() % 50))
+            {
+                enemyBulletSound.stop();
+                bullets.emplace_back(bulletElement{Bullet(it->unit, 20, enemyBulletTexture),0,unitType::Enemy});
 
+                enemyBulletSound.play();
+            }
+            window.draw(it->unit);
+
+
+
+                for (auto itb = bullets.begin(); itb != bullets.end(); ++itb) {
+
+                    if (itb->ownerType == unitType::Player) {
+                        float distance = sqrtf(powf(itb->bullet.getPosition().x - it->unit.getPosition().x, 2) +
+                                               powf(itb->bullet.getPosition().y - it->unit.getPosition().y, 2));
+                        if ((distance > 0) && (distance < 2000)) {
+                            if (distance < it->unit.getRadius()) {
+                                it->hp -= 10;
+                                if (it->hp <= 0)
+                                {
+                                    it->unit.setPosition(player.getPosition() + sf::Vector2f(-2000 + rand() % 4000, -2000 + rand() % 4000));
+                                    it->hp = 30;
+                                }
+                                //itb = bullets.erase(itb);
+                                it = enemies.erase(it);
+                                //itb->bullet.setPosition(player.getPosition() + sf::Vector2f(9999,9999));
+                                //itb->clock = 200;
+
+
+                            }
+                        }
+
+                    }
+                }
         }
 
+
+        window.draw(healthBar);
+        window.draw(healthStatus);
 
         window.display();
 

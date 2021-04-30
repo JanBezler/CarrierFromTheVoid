@@ -8,7 +8,7 @@ void Bullet::draw(sf::RenderTarget& target, sf::RenderStates state) const
 Bullet::Bullet(Unit owner, float bulletSpeed, const sf::Texture &texture)
 {
     shape.setTexture(texture);
-    float rotation = owner.getRotation();
+    float rotation = owner.getRotation() - 4 + rand() % 9;
     velocity = {sinf(rotation * M_PI / 180.0) * bulletSpeed, -cosf(rotation * M_PI / 180.0) * bulletSpeed};
     //velocity += owner.getVelocity();
     shape.setPosition(owner.getPosition());
@@ -20,6 +20,11 @@ Bullet::Bullet(Unit owner, float bulletSpeed, const sf::Texture &texture)
 sf::Vector2f Bullet::getPosition()
 {
     return shape.getPosition();
+}
+
+void Bullet::setPosition(sf::Vector2f position)
+{
+    shape.setPosition(position);
 }
 
 void Bullet::update()
