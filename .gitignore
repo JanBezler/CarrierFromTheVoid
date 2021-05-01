@@ -34,5 +34,4 @@
 .idea
 cmake*
 
-CMakeLists.txt
 cmake_modules
