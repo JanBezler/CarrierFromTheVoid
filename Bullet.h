@@ -2,8 +2,6 @@
 #define CARRIERFROMTHEVOID_BULLET_H
 
 #include <SFML/Graphics.hpp>
-#include "Unit.h"
-#include <stdlib.h>
 #include <cmath>
 
 
@@ -16,7 +14,7 @@ private:
     void draw(sf::RenderTarget& target, sf::RenderStates state) const override;
 
 public:
-    Bullet(Unit owner, float bulletSpeed, const sf::Texture &texture);
+    Bullet(sf::Vector2f ownerPosition, float ownerRotation, float bulletSpeed, const sf::Texture &texture);
     Bullet() = delete;
     ~Bullet() = default;
 

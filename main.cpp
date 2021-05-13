@@ -1,9 +1,9 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
+#include "Unit.h"
 #include "Bullet.h"
 #include "Background.h"
 #include <iostream>
-#include <stdlib.h>
 #include <algorithm>
 #include "Animation.h"
 
@@ -15,6 +15,7 @@ enum shipType
     light,
     medium,
     heavy,
+    boss,
     player
 };
 
@@ -59,8 +60,9 @@ void bulletsErasingOrDrawing(std::vector<bulletElement> &vbel, sf::RenderWindow 
 
 int main()
 {
-
+    int enemiesSpawned = 0;
     bool readyToShoot = true;
+    int powerUpTimer = 0;
     std::vector<sf::Texture> blowUpTextures;
     std::vector<bulletElement> enemyBullets;
     std::vector<bulletElement> playerBullets;
@@ -71,16 +73,15 @@ int main()
 
 #pragma region loadingAssets
 
-    sf::Texture blowUpTexture;
-    for (int i = 1; i<=8; i++)
+    for (int i = 0; i<=7; i++)
     {
-        if (!blowUpTexture.loadFromFile("assets/Textures/BlowUp/expl" + std::to_string(i) + ".png"))
+        blowUpTextures.emplace_back(sf::Texture());
+        if (!blowUpTextures[i].loadFromFile("assets/Textures/BlowUp/expl" + std::to_string(i+1) + ".png"))
         {
-            std::cout << "Could not load blowUpTexture" + std::to_string(i) + " texture";
+            std::cout << "Could not load blowUpTexture" + std::to_string(i+1) + " texture";
             return 0;
         }
-        blowUpTexture.setSmooth(true);
-        blowUpTextures.emplace_back(blowUpTexture);
+        blowUpTextures[i].setSmooth(true);
     }
 
 
@@ -106,7 +107,6 @@ int main()
         std::cout << "Could not load enemy2Texture texture";
         return 0;
     }
-
     enemy2Texture.setSmooth(true);
 
     sf::Texture enemy3Texture;
@@ -115,8 +115,15 @@ int main()
         std::cout << "Could not load enemy3Texture texture";
         return 0;
     }
-
     enemy3Texture.setSmooth(true);
+
+    sf::Texture bossTexture;
+    if (!bossTexture.loadFromFile("assets/Textures/Enemies/boss.png"))
+    {
+        std::cout << "Could not load bossTexture texture";
+        return 0;
+    }
+    bossTexture.setSmooth(true);
 
     sf::Texture playerBulletTexture;
     if (!playerBulletTexture.loadFromFile("assets/Textures/Lasers/laserBlue01.png"))
@@ -150,6 +157,14 @@ int main()
     }
     enemyBullet3Texture.setSmooth(true);
 
+    sf::Texture enemyBulletBossTexture;
+    if (!enemyBulletBossTexture.loadFromFile("assets/Textures/Lasers/laserRedBoss.png"))
+    {
+        std::cout << "Could not load enemyBulletBossTexture texture";
+        return 0;
+    }
+    enemyBulletBossTexture.setSmooth(true);
+
     sf::Texture backgroundTexture;
     if (!backgroundTexture.loadFromFile("assets/Textures/Backgrounds/star.png"))
     {
@@ -172,6 +187,13 @@ int main()
         return 0;
     }
 
+    sf::Music enemyExplosionSound;
+    if (!enemyExplosionSound.openFromFile("assets/Sound/sfx_explosion2.ogg"))
+    {
+        std::cout << "Could not load enemyExplosionSound sound";
+        return 0;
+    }
+
 #pragma endregion
 
     shipElement player = shipElement{Unit(sf::Vector2f(0, 0), playerTexture),360,shipType::player};
@@ -182,8 +204,9 @@ int main()
     settings.antialiasingLevel = 8;
 
 
-    sf::RenderWindow window(sf::VideoMode(1920, 1080), "CarrierFromTheVoid", sf::Style::Fullscreen, settings);
+    sf::RenderWindow window(sf::VideoMode(), "CarrierFromTheVoid", sf::Style::Fullscreen, settings);
     window.setMouseCursorVisible(false);
+
 
     window.setFramerateLimit(60);
 
@@ -191,7 +214,7 @@ int main()
 
     sf::View view;
 
-    float zoom = 1;
+    float zoom = 0 ;
 
     view.reset(sf::FloatRect(0.f*zoom, 0.f*zoom, 1920.f*(zoom+1), 1080.f*(zoom+1)));
 
@@ -219,6 +242,13 @@ int main()
 #pragma region backgroundGeneration
 
     float squaresAroundPlayer = (zoom+1);
+    float borderDistance = squaresAroundPlayer * 4000 + 2000;
+
+    sf::RectangleShape border = sf::RectangleShape(sf::Vector2f(borderDistance + 200, borderDistance + 200));
+    border.setOutlineThickness(30);
+    border.setOutlineColor(sf::Color(32,35,41));
+    border.setFillColor(sf::Color::Transparent);
+    border.setPosition(-borderDistance/2,-borderDistance/2);
 
     for (int i=-2000*squaresAroundPlayer; i<=2000*squaresAroundPlayer; i+=2000)
     {
@@ -252,10 +282,10 @@ int main()
             if (readyToShoot)
             {
                 bulletSound.stop();
-                playerBullets.emplace_back(bulletElement{Bullet(player.unit, 20, playerBulletTexture),0,shipType::player});
+                playerBullets.emplace_back(bulletElement{Bullet(player.unit.getPosition(), player.unit.getRotation(), 20, playerBulletTexture),0,shipType::player});
                 bulletSound.play();
 
-                readyToShoot = false;
+                //readyToShoot = false;
             }
         }
         else readyToShoot = true;
@@ -326,6 +356,7 @@ int main()
             if (animation.getCounter()>0) window.draw(animation);
             animation.update();
         }
+        window.draw(border);
 
 #pragma endregion
 
@@ -342,12 +373,25 @@ int main()
                     case shipType::light: player.hp -= 10; break;
                     case shipType::medium: player.hp -= 16; break;
                     case shipType::heavy: player.hp -= 30; break;
+                    case shipType::boss: player.hp -= 70; break;
                 }
 
             }
         }
 
-        if (player.hp<0) player.hp = 0;
+        if ((player.unit.right()>border.getGlobalBounds().left + border.getGlobalBounds().width) ||
+                (player.unit.bottom()>border.getGlobalBounds().top + border.getGlobalBounds().height) ||
+                (player.unit.left()<border.getGlobalBounds().left || player.unit.top()<border.getGlobalBounds().top))
+            player.hp--;
+
+        if (player.hp<0)
+        {
+            player.hp = 0;
+            enemyExplosionSound.stop();
+            enemyExplosionSound.setVolume(100);
+            animations.emplace_back(player.unit.getPosition(),0.76f,2,blowUpTextures);
+            enemyExplosionSound.play();
+        }
         healthBar.setRotation(player.unit.getRotation()-90);
         healthBar.setPosition(player.unit.getPosition());
         healthStatus.setSize(sf::Vector2f(20 * (zoom+1),player.hp * (zoom+1)));
@@ -373,7 +417,14 @@ int main()
             {
                 enemies.emplace_back(shipElement{Unit(player.unit.getPosition() + sf::Vector2f(-3000 * (zoom+1) + rand() % 6000 * (zoom+1),-3000 * (zoom+1) + rand() % 6000 * (zoom+1)), enemy3Texture),50,shipType::heavy});
             }
+            enemiesSpawned++;
+
+            if (enemiesSpawned % 10 == 0)
+                enemies.emplace_back(shipElement{Unit(player.unit.getPosition() + sf::Vector2f(-3000 * (zoom+1) + rand() % 6000 * (zoom+1),-3000 * (zoom+1) + rand() % 6000 * (zoom+1)), bossTexture),200,shipType::boss});
+
         }
+
+
 
 #pragma endregion
 
@@ -399,10 +450,11 @@ int main()
                     if (!(rand() % 33))
                     {
                         enemyBulletSound.stop();
-                        enemyBullets.emplace_back(bulletElement{Bullet(it->unit, 20, enemyBullet1Texture),250, shipType::light});
+                        enemyBullets.emplace_back(bulletElement{Bullet(it->unit.getPosition(), it->unit.getRotation(), 20, enemyBullet1Texture),250, shipType::light});
                         enemyBulletSound.play();
                     }
                     explodeSize = 1.4;
+
                     break;
                 }
                 case shipType::medium:
@@ -416,7 +468,7 @@ int main()
                     if (!(rand() % 45))
                     {
                         enemyBulletSound.stop();
-                        enemyBullets.emplace_back(bulletElement{Bullet(it->unit, 15, enemyBullet2Texture),160, shipType::medium});
+                        enemyBullets.emplace_back(bulletElement{Bullet(it->unit.getPosition(), it->unit.getRotation(), 11, enemyBullet2Texture),160, shipType::medium});
                         enemyBulletSound.play();
                     }
                     explodeSize = 1.9;
@@ -433,13 +485,32 @@ int main()
                     if (!(rand() % 90))
                     {
                         enemyBulletSound.stop();
-                        enemyBullets.emplace_back(bulletElement{Bullet(it->unit, 10, enemyBullet3Texture),0, shipType::heavy});
+                        enemyBullets.emplace_back(bulletElement{Bullet(it->unit.getPosition(), it->unit.getRotation(), 10, enemyBullet3Texture),0, shipType::heavy});
                         enemyBulletSound.play();
                     }
                     explodeSize = 2.4;
                     break;
                 }
+                case shipType::boss:
+                {
+                    if (enemyRotation<wantedRotation) it->unit.addTorque(0.5);
+                    else it->unit.addTorque(-0.5);
+                    if ((abs(player.unit.getPosition().y-it->unit.getPosition().y) > 800) || (abs(player.unit.getPosition().x-it->unit.getPosition().x) > 800))
+                    {
+                        it->unit.addAccelerationStraight(rand() % 4);
+                    }
+                    if (!(rand() % 100))
+                    {
+                        enemyBulletSound.stop();
+                        enemyBullets.emplace_back(bulletElement{Bullet(it->unit.getPosition(), it->unit.getRotation(), 6, enemyBulletBossTexture),0, shipType::boss});
+                        enemyBulletSound.play();
+
+                    }
+                    explodeSize = 4;
+                    break;
+                }
             }
+            enemyBulletSound.setVolume(explodeSize*25/2 +50);
             it->unit.update();
 
             for (auto itb = playerBullets.begin(); itb != playerBullets.end(); ++itb) {
@@ -449,7 +520,10 @@ int main()
                     it->hp -= 10;
                     if (it->hp <= 0)
                     {
+                        enemyExplosionSound.stop();
+                        enemyExplosionSound.setVolume(explodeSize*25);
                         animations.emplace_back(it->unit.getPosition(),0.76f,explodeSize,blowUpTextures);
+                        enemyExplosionSound.play();
                         it = enemies.erase(it);
                     }
 
