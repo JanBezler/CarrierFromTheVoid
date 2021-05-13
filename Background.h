@@ -6,7 +6,6 @@
 #include <cmath>
 #include <vector>
 
-
 class Background: public sf::Drawable {
 
 private:
@@ -22,6 +21,7 @@ public:
     sf::Vector2f getPosition();
 
 };
+
 
 
 #endif //CARRIERFROMTHEVOID_BACKGROUND_H

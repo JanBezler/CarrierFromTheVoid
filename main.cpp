@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <algorithm>
+#include "Animation.h"
 
 
 #pragma region enumsAndStructures
@@ -59,7 +60,29 @@ void bulletsErasingOrDrawing(std::vector<bulletElement> &vbel, sf::RenderWindow 
 int main()
 {
 
+    bool readyToShoot = true;
+    std::vector<sf::Texture> blowUpTextures;
+    std::vector<bulletElement> enemyBullets;
+    std::vector<bulletElement> playerBullets;
+    std::vector<Background> backgrounds;
+    std::vector<shipElement> enemies;
+    std::vector<Animation> animations;
+
+
 #pragma region loadingAssets
+
+    sf::Texture blowUpTexture;
+    for (int i = 1; i<=8; i++)
+    {
+        if (!blowUpTexture.loadFromFile("assets/Textures/BlowUp/expl" + std::to_string(i) + ".png"))
+        {
+            std::cout << "Could not load blowUpTexture" + std::to_string(i) + " texture";
+            return 0;
+        }
+        blowUpTexture.setSmooth(true);
+        blowUpTextures.emplace_back(blowUpTexture);
+    }
+
 
     sf::Texture playerTexture;
     if (!playerTexture.loadFromFile("assets/Textures/playerShip1_blue.png"))
@@ -152,11 +175,6 @@ int main()
 #pragma endregion
 
     shipElement player = shipElement{Unit(sf::Vector2f(0, 0), playerTexture),360,shipType::player};
-    bool readyToShoot = true;
-    std::vector<bulletElement> enemyBullets;
-    std::vector<bulletElement> playerBullets;
-    std::vector<Background> backgrounds;
-    std::vector<shipElement> enemies;
 
 #pragma region setUpWindowView
 
@@ -303,6 +321,12 @@ int main()
         window.clear(sf::Color(42,45,51));
         for (auto &bg : backgrounds) window.draw(bg);
 
+        for (auto &animation: animations)
+        {
+            if (animation.getCounter()>0) window.draw(animation);
+            animation.update();
+        }
+
 #pragma endregion
 
 #pragma region healthBarUpdate
@@ -361,6 +385,7 @@ int main()
             float enemyRotation = it->unit.getRotation();
             if (enemyRotation>180) enemyRotation = enemyRotation-360;
             if (wantedRotation>180) wantedRotation = wantedRotation-360;
+            float explodeSize;
 
             switch (it->type) {
                 case shipType::light:
@@ -377,6 +402,7 @@ int main()
                         enemyBullets.emplace_back(bulletElement{Bullet(it->unit, 20, enemyBullet1Texture),250, shipType::light});
                         enemyBulletSound.play();
                     }
+                    explodeSize = 1.4;
                     break;
                 }
                 case shipType::medium:
@@ -390,9 +416,10 @@ int main()
                     if (!(rand() % 45))
                     {
                         enemyBulletSound.stop();
-                        enemyBullets.emplace_back(bulletElement{Bullet(it->unit, 16, enemyBullet2Texture),160, shipType::medium});
+                        enemyBullets.emplace_back(bulletElement{Bullet(it->unit, 15, enemyBullet2Texture),160, shipType::medium});
                         enemyBulletSound.play();
                     }
+                    explodeSize = 1.9;
                     break;
                 }
                 case shipType::heavy:
@@ -406,9 +433,10 @@ int main()
                     if (!(rand() % 90))
                     {
                         enemyBulletSound.stop();
-                        enemyBullets.emplace_back(bulletElement{Bullet(it->unit, 13, enemyBullet3Texture),0, shipType::heavy});
+                        enemyBullets.emplace_back(bulletElement{Bullet(it->unit, 10, enemyBullet3Texture),0, shipType::heavy});
                         enemyBulletSound.play();
                     }
+                    explodeSize = 2.4;
                     break;
                 }
             }
@@ -419,10 +447,14 @@ int main()
                 if (collisionDetection(*it,*itb))
                 {
                     it->hp -= 10;
-                    if (it->hp <= 0) it = enemies.erase(it);
+                    if (it->hp <= 0)
+                    {
+                        animations.emplace_back(it->unit.getPosition(),0.76f,explodeSize,blowUpTextures);
+                        it = enemies.erase(it);
+                    }
 
                     itb->bullet.setPosition(player.unit.getPosition() + sf::Vector2f(9999,9999));
-                    itb->clock = 270;
+                    itb->clock = 200;
                 }
             }
         }
@@ -433,8 +465,6 @@ int main()
 
         bulletsErasingOrDrawing(playerBullets, window);
         bulletsErasingOrDrawing(enemyBullets, window);
-
-        std::cout << playerBullets.size()+enemyBullets.size() << std::endl;
 
         player.unit.update();
         window.draw(player.unit);
