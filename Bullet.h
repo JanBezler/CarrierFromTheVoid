@@ -16,7 +16,7 @@ private:
 public:
     Bullet(sf::Vector2f ownerPosition, float ownerRotation, float bulletSpeed, const sf::Texture &texture);
     Bullet() = delete;
-    ~Bullet() = default;
+    ~Bullet() override = default;
 
     sf::Vector2f getPosition();
     void setPosition(sf::Vector2f position);

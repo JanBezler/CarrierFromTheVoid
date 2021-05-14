@@ -24,11 +24,10 @@ Animation::Animation(sf::Vector2f position, float duration, float size, std::vec
 
 }
 
+
 void Animation::update()
 {
     counter--;
-    //if (counter<0)
-        //delete this;
 }
 
 int Animation::getCounter()

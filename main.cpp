@@ -37,10 +37,13 @@ struct shipElement
 
 #pragma region additionalFunctions
 
-bool collisionDetection(shipElement &sel, bulletElement &bel)
+bool collisionDetectionBullet(shipElement &sel, bulletElement &bel)
 {
     float distance = sqrtf(powf(bel.bullet.getPosition().x - sel.unit.getPosition().x, 2) + powf(bel.bullet.getPosition().y - sel.unit.getPosition().y, 2));
-    if (((distance > 0) & (distance < 2000)) & (distance < sel.unit.getRadius())) return true;
+    if (((distance > 0) & (distance < 2000)) & (distance < sel.unit.getRadius()))
+    {
+        return true;
+    }
     return false;
 }
 
@@ -194,6 +197,13 @@ int main()
         return 0;
     }
 
+    sf::Font font;
+    if (!font.loadFromFile("assets/kenvector_future_thin.ttf"))
+    {
+        std::cout << "Could not load font";
+        return 0;
+    }
+
 #pragma endregion
 
     shipElement player = shipElement{Unit(sf::Vector2f(0, 0), playerTexture),360,shipType::player};
@@ -269,7 +279,9 @@ int main()
         while (window.pollEvent(event))
         {
             if (event.type == sf::Event::Closed)
+            {
                 window.close();
+            }
         }
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape))
@@ -277,11 +289,14 @@ int main()
             window.close();
         }
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space) or sf::Mouse::isButtonPressed(sf::Mouse::Left))
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space) || sf::Mouse::isButtonPressed(sf::Mouse::Left))
         {
             if (readyToShoot)
             {
                 bulletSound.stop();
+                playerBullets.emplace_back(bulletElement{Bullet(player.unit.getPosition(), player.unit.getRotation(), 20, playerBulletTexture),0,shipType::player});
+                playerBullets.emplace_back(bulletElement{Bullet(player.unit.getPosition(), player.unit.getRotation(), 20, playerBulletTexture),0,shipType::player});
+                playerBullets.emplace_back(bulletElement{Bullet(player.unit.getPosition(), player.unit.getRotation(), 20, playerBulletTexture),0,shipType::player});
                 playerBullets.emplace_back(bulletElement{Bullet(player.unit.getPosition(), player.unit.getRotation(), 20, playerBulletTexture),0,shipType::player});
                 bulletSound.play();
 
@@ -319,13 +334,25 @@ int main()
 
         if (mouseCenterOffset > 0)
         {
-            if (mouseCenterOffset > 222) sf::Mouse::setPosition(sf::Vector2i(windowCenter.x+222,window.getSize().y/2), window);
-            else sf::Mouse::setPosition(sf::Vector2i(sf::Mouse::getPosition(window).x-3-mouseCenterOffset/60,window.getSize().y/2), window);
+            if (mouseCenterOffset > 222)
+            {
+                sf::Mouse::setPosition(sf::Vector2i(windowCenter.x+222,window.getSize().y/2), window);
+            }
+            else
+            {
+                sf::Mouse::setPosition(sf::Vector2i(sf::Mouse::getPosition(window).x-3-mouseCenterOffset/60,window.getSize().y/2), window);
+            }
         }
         if (mouseCenterOffset < 0)
         {
-            if (mouseCenterOffset < -222) sf::Mouse::setPosition(sf::Vector2i(windowCenter.x-222,window.getSize().y/2), window);
-            else sf::Mouse::setPosition(sf::Vector2i(sf::Mouse::getPosition(window).x+3-mouseCenterOffset/60,window.getSize().y/2), window);
+            if (mouseCenterOffset < -222)
+            {
+                sf::Mouse::setPosition(sf::Vector2i(windowCenter.x-222,window.getSize().y/2), window);
+            }
+            else
+            {
+                sf::Mouse::setPosition(sf::Vector2i(sf::Mouse::getPosition(window).x+3-mouseCenterOffset/60,window.getSize().y/2), window);
+            }
         }
         mouseCenterOffset = 0;
 
@@ -349,14 +376,22 @@ int main()
 #pragma region backgroundUpdate
 
         window.clear(sf::Color(42,45,51));
+        window.draw(border);
         for (auto &bg : backgrounds) window.draw(bg);
 
-        for (auto &animation: animations)
+        for (auto ita = animations.begin(); ita != animations.end(); ++ita)
         {
-            if (animation.getCounter()>0) window.draw(animation);
-            animation.update();
+            ita->update();
+            if (ita->getCounter()>0)
+            {
+                window.draw(*ita);
+            }
+            else if ((animations.size()>1) && (ita->getCounter()<0))
+            {
+                ita = animations.erase(ita);
+            }
         }
-        window.draw(border);
+
 
 #pragma endregion
 
@@ -364,16 +399,16 @@ int main()
 
         for (auto itb = enemyBullets.begin(); itb != enemyBullets.end(); ++itb)
         {
-            if (collisionDetection(player,*itb))
+            if (collisionDetectionBullet(player,*itb))
             {
                 itb->bullet.setPosition(player.unit.getPosition() + sf::Vector2f(9999,9999));
                 itb->clock = 270;
                 switch (itb->type)
                 {
-                    case shipType::light: player.hp -= 10; break;
-                    case shipType::medium: player.hp -= 16; break;
-                    case shipType::heavy: player.hp -= 30; break;
-                    case shipType::boss: player.hp -= 70; break;
+                    case shipType::light: {player.hp -= 10; break;}
+                    case shipType::medium: {player.hp -= 16; break;}
+                    case shipType::heavy: {player.hp -= 30; break;}
+                    case shipType::boss: {player.hp -= 70; break;}
                 }
 
             }
@@ -382,7 +417,10 @@ int main()
         if ((player.unit.right()>border.getGlobalBounds().left + border.getGlobalBounds().width) ||
                 (player.unit.bottom()>border.getGlobalBounds().top + border.getGlobalBounds().height) ||
                 (player.unit.left()<border.getGlobalBounds().left || player.unit.top()<border.getGlobalBounds().top))
+        {
             player.hp--;
+        }
+
 
         if (player.hp<0)
         {
@@ -405,23 +443,32 @@ int main()
         if (enemies.size()<6)
         {
             int temp_random =1+ rand() % 101;
-            if (temp_random < 32)
-            {
-                enemies.emplace_back(shipElement{Unit(player.unit.getPosition() + sf::Vector2f(-3000 * (zoom+1) + rand() % 6000 * (zoom+1), -3000 * (zoom+1) + rand() % 6000 * (zoom+1)), enemy1Texture),20,shipType::light});
+            if (temp_random < 32) {
+                enemies.emplace_back(shipElement{Unit(player.unit.getPosition() +
+                                                      sf::Vector2f(-3000 * (zoom + 1) + rand() % 6000 * (zoom + 1),
+                                                                   -3000 * (zoom + 1) + rand() % 6000 * (zoom + 1)),
+                                                      enemy1Texture), 30, shipType::light});
             }
-            else if (temp_random < 70)
-            {
-                enemies.emplace_back(shipElement{Unit(player.unit.getPosition() + sf::Vector2f(-3000 * (zoom+1) + rand() % 6000 * (zoom+1), -3000 * (zoom+1) + rand() % 6000 * (zoom+1)), enemy2Texture),30,shipType::medium});
+            else if (temp_random < 70) {
+                enemies.emplace_back(shipElement{Unit(player.unit.getPosition() +
+                                                      sf::Vector2f(-3000 * (zoom + 1) + rand() % 6000 * (zoom + 1),
+                                                                   -3000 * (zoom + 1) + rand() % 6000 * (zoom + 1)),
+                                                      enemy2Texture), 40, shipType::medium});
             }
-            else
-            {
-                enemies.emplace_back(shipElement{Unit(player.unit.getPosition() + sf::Vector2f(-3000 * (zoom+1) + rand() % 6000 * (zoom+1),-3000 * (zoom+1) + rand() % 6000 * (zoom+1)), enemy3Texture),50,shipType::heavy});
+            else {
+                enemies.emplace_back(shipElement{Unit(player.unit.getPosition() +
+                                                      sf::Vector2f(-3000 * (zoom + 1) + rand() % 6000 * (zoom + 1),
+                                                                   -3000 * (zoom + 1) + rand() % 6000 * (zoom + 1)),
+                                                      enemy3Texture), 60, shipType::heavy});
             }
             enemiesSpawned++;
 
-            if (enemiesSpawned % 10 == 0)
-                enemies.emplace_back(shipElement{Unit(player.unit.getPosition() + sf::Vector2f(-3000 * (zoom+1) + rand() % 6000 * (zoom+1),-3000 * (zoom+1) + rand() % 6000 * (zoom+1)), bossTexture),200,shipType::boss});
-
+            if (enemiesSpawned % 10 == 0) {
+                enemies.emplace_back(shipElement{Unit(player.unit.getPosition() +
+                                                      sf::Vector2f(-3000 * (zoom + 1) + rand() % 6000 * (zoom + 1),
+                                                                   -3000 * (zoom + 1) + rand() % 6000 * (zoom + 1)),
+                                                      bossTexture), 200, shipType::boss});
+            }
         }
 
 
@@ -434,15 +481,27 @@ int main()
         {
             float wantedRotation = atan2f(player.unit.getPosition().y-it->unit.getPosition().y, player.unit.getPosition().x-it->unit.getPosition().x) * 180 /M_PI + 90;
             float enemyRotation = it->unit.getRotation();
-            if (enemyRotation>180) enemyRotation = enemyRotation-360;
-            if (wantedRotation>180) wantedRotation = wantedRotation-360;
+            if (enemyRotation>180)
+            {
+                enemyRotation = enemyRotation-360;
+            }
+            if (wantedRotation>180)
+            {
+                wantedRotation = wantedRotation-360;
+            }
             float explodeSize;
 
             switch (it->type) {
                 case shipType::light:
                 {
-                    if (enemyRotation<wantedRotation) it->unit.addTorque(5);
-                    else it->unit.addTorque(-5);
+                    if (enemyRotation<wantedRotation)
+                    {
+                        it->unit.addTorque(5);
+                    }
+                    else
+                    {
+                        it->unit.addTorque(-5);
+                    }
                     if ((abs(player.unit.getPosition().y-it->unit.getPosition().y) > 500) || (abs(player.unit.getPosition().x-it->unit.getPosition().x) > 500))
                     {
                         it->unit.addAccelerationStraight(rand() % 20);
@@ -459,8 +518,14 @@ int main()
                 }
                 case shipType::medium:
                 {
-                    if (enemyRotation<wantedRotation) it->unit.addTorque(3);
-                    else it->unit.addTorque(-3);
+                    if (enemyRotation<wantedRotation)
+                    {
+                        it->unit.addTorque(3);
+                    }
+                    else
+                    {
+                        it->unit.addTorque(-3);
+                    }
                     if ((abs(player.unit.getPosition().y-it->unit.getPosition().y) > 640) || (abs(player.unit.getPosition().x-it->unit.getPosition().x) > 640))
                     {
                         it->unit.addAccelerationStraight(rand() % 12);
@@ -476,8 +541,14 @@ int main()
                 }
                 case shipType::heavy:
                 {
-                    if (enemyRotation<wantedRotation) it->unit.addTorque(1);
-                    else it->unit.addTorque(-1);
+                    if (enemyRotation<wantedRotation)
+                    {
+                        it->unit.addTorque(1);
+                    }
+                    else
+                    {
+                        it->unit.addTorque(-1);
+                    }
                     if ((abs(player.unit.getPosition().y-it->unit.getPosition().y) > 800) || (abs(player.unit.getPosition().x-it->unit.getPosition().x) > 800))
                     {
                         it->unit.addAccelerationStraight(rand() % 8);
@@ -493,8 +564,14 @@ int main()
                 }
                 case shipType::boss:
                 {
-                    if (enemyRotation<wantedRotation) it->unit.addTorque(0.5);
-                    else it->unit.addTorque(-0.5);
+                    if (enemyRotation<wantedRotation)
+                    {
+                        it->unit.addTorque(0.5);
+                    }
+                    else
+                    {
+                        it->unit.addTorque(-0.5);
+                    }
                     if ((abs(player.unit.getPosition().y-it->unit.getPosition().y) > 800) || (abs(player.unit.getPosition().x-it->unit.getPosition().x) > 800))
                     {
                         it->unit.addAccelerationStraight(rand() % 4);
@@ -515,7 +592,7 @@ int main()
 
             for (auto itb = playerBullets.begin(); itb != playerBullets.end(); ++itb) {
 
-                if (collisionDetection(*it,*itb))
+                if (collisionDetectionBullet(*it,*itb))
                 {
                     it->hp -= 10;
                     if (it->hp <= 0)
@@ -533,7 +610,10 @@ int main()
             }
         }
 
-        for (auto &enemy : enemies) window.draw(enemy.unit);
+        for (auto &enemy : enemies)
+        {
+            window.draw(enemy.unit);
+        }
 
 #pragma endregion
 
@@ -545,6 +625,9 @@ int main()
 
         window.draw(healthBar);
         window.draw(healthStatus);
+
+
+        window.draw(sf::Text("21:37",font,30));
 
         window.display();
 

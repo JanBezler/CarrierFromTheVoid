@@ -26,7 +26,7 @@ Background::Background(sf::Vector2f position, const sf::Texture &starTexture)
     }
 }
 
-sf::Vector2f Background::getPosition()
+[[maybe_unused]] sf::Vector2f Background::getPosition()
 {
     return position;
 }

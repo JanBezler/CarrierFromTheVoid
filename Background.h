@@ -16,9 +16,9 @@ private:
 public:
     Background(sf::Vector2f position, const sf::Texture &starTexture);
     Background() = delete;
-    ~Background() = default;
+    ~Background() override = default;
 
-    sf::Vector2f getPosition();
+    [[maybe_unused]] sf::Vector2f getPosition();
 
 };
 

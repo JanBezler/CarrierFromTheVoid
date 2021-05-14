@@ -7,21 +7,21 @@
 class Unit: public sf::Drawable {
 
 private:
-    float drag;
+    float drag{};
     sf::Sprite shape;
     sf::Vector2f velocity;
-    float rotationSpeed;
-    float accelerationStraight;
-    float accelerationSideways;
-    float torque;
-    float maxSpeed;
+    float rotationSpeed{};
+    float accelerationStraight{};
+    float accelerationSideways{};
+    float torque{};
+    float maxSpeed{};
 
     void draw(sf::RenderTarget& target, sf::RenderStates state) const override;
 
 public:
     Unit(sf::Vector2f position, const sf::Texture &texture);
     Unit(){delete(this);}
-    ~Unit() = default;
+    ~Unit() override = default;
 
     void update();
 

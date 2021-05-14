@@ -12,8 +12,12 @@ private:
 
 public:
 
-    void draw(sf::RenderTarget& target, sf::RenderStates state) const override;
+
     Animation(sf::Vector2f position, float duration, float size, std::vector<sf::Texture> &textures);
+    ~Animation() override = default;
+
+    void draw(sf::RenderTarget& target, sf::RenderStates state) const override;
+
     void update();
     int getCounter();
 };
