@@ -6,6 +6,7 @@
 #include <iostream>
 #include <algorithm>
 #include "Animation.h"
+#include "MainMenu.h"
 
 
 #pragma region enumsAndStructures
@@ -47,14 +48,13 @@ bool collisionDetectionBullet(shipElement &sel, bulletElement &bel)
     return false;
 }
 
-void bulletsErasingOrDrawing(std::vector<bulletElement> &vbel, sf::RenderWindow &w)
+void bulletsUpdate(std::vector<bulletElement> &vbel, sf::RenderWindow &w)
 {
     vbel.erase(std::remove_if(vbel.begin(),vbel.end(),[](bulletElement b){return b.clock>300;}),vbel.end());
     for(auto &b : vbel)
     {
         b.bullet.update();
         b.clock++;
-        w.draw(b.bullet);
     }
 
 }
@@ -63,15 +63,21 @@ void bulletsErasingOrDrawing(std::vector<bulletElement> &vbel, sf::RenderWindow 
 
 int main()
 {
+    bool gameRunning = false;
+    bool gamePaused = false;
+    bool escNotClicked = true;
     int enemiesSpawned = 0;
     bool readyToShoot = true;
     int powerUpTimer = 0;
+    int score = 0;
     std::vector<sf::Texture> blowUpTextures;
     std::vector<bulletElement> enemyBullets;
     std::vector<bulletElement> playerBullets;
     std::vector<Background> backgrounds;
     std::vector<shipElement> enemies;
     std::vector<Animation> animations;
+
+
 
 
 #pragma region loadingAssets
@@ -215,27 +221,32 @@ int main()
 
 
     sf::RenderWindow window(sf::VideoMode(), "CarrierFromTheVoid", sf::Style::Fullscreen, settings);
-    window.setMouseCursorVisible(false);
 
 
     window.setFramerateLimit(60);
 
+
     sf::Vector2i windowCenter {static_cast<int>(window.getSize().x/2),static_cast<int>(window.getSize().y/2)};
-
-    sf::View view;
-
-    float zoom = 0 ;
-
-    view.reset(sf::FloatRect(0.f*zoom, 0.f*zoom, 1920.f*(zoom+1), 1080.f*(zoom+1)));
 
     sf::Mouse::setPosition(windowCenter, window);
 
+    float zoom = 0 ;
     float playerCameraOffset = 300;
+
+    sf::View view;
+    view.reset(sf::FloatRect(0.f*zoom, 0.f*zoom, 1920.f*(zoom+1), 1080.f*(zoom+1)));
+
     view.setCenter(player.unit.getPosition().x , player.unit.getPosition().y-playerCameraOffset);
+
+    sf::View menuView = view;
+    menuView.setCenter(0,0);
+
 
 #pragma endregion
 
-#pragma region setHealthBar
+    MainMenu mainMenu = MainMenu(sf::Vector2f(window.getSize().x, window.getSize().y),font);
+
+#pragma region setHUD
 
     sf::Vector2f healthBarPosition {160 * (3 * zoom+1),850 * (zoom+1)};
     sf::RectangleShape healthBar = sf::RectangleShape(sf::Vector2f(20 * (zoom+1),360 * (zoom+1)));
@@ -246,6 +257,12 @@ int main()
     healthBar.setOutlineThickness(4 * (zoom+1));
     healthStatus.setFillColor(sf::Color(250,30,50,180));
     healthStatus.setOrigin(healthBarPosition);
+
+    sf::Text scoreText = sf::Text("Score: 0",font,30);
+    scoreText.setOrigin(900,800);
+
+    sf::Text gamePausedText = sf::Text("GAME PAUSED",font,50);
+
 
 #pragma endregion
 
@@ -268,12 +285,17 @@ int main()
         }
     }
 
+    sf::RectangleShape pauseDimmer = sf::RectangleShape(sf::Vector2f(4000,4000));
+    pauseDimmer.setFillColor(sf::Color(0,0,0,100));
+    pauseDimmer.setOrigin(2000,2000);
+
+
+
+
 #pragma endregion
 
     while (window.isOpen())
     {
-
-#pragma region keypressAndEvents
 
         sf::Event event{};
         while (window.pollEvent(event))
@@ -284,350 +306,414 @@ int main()
             }
         }
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape))
-        {
-            window.close();
-        }
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space) || sf::Mouse::isButtonPressed(sf::Mouse::Left))
-        {
-            if (readyToShoot)
-            {
-                bulletSound.stop();
-                playerBullets.emplace_back(bulletElement{Bullet(player.unit.getPosition(), player.unit.getRotation(), 20, playerBulletTexture),0,shipType::player});
-                playerBullets.emplace_back(bulletElement{Bullet(player.unit.getPosition(), player.unit.getRotation(), 20, playerBulletTexture),0,shipType::player});
-                playerBullets.emplace_back(bulletElement{Bullet(player.unit.getPosition(), player.unit.getRotation(), 20, playerBulletTexture),0,shipType::player});
-                playerBullets.emplace_back(bulletElement{Bullet(player.unit.getPosition(), player.unit.getRotation(), 20, playerBulletTexture),0,shipType::player});
-                bulletSound.play();
-
-                //readyToShoot = false;
-            }
-        }
-        else readyToShoot = true;
-
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W))
-        {
-            player.unit.addAccelerationStraight(7);
-        }
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S))
-        {
-            player.unit.addAccelerationStraight(-4);
-        }
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
-        {
-            player.unit.addAccelerationSideways(4);
-        }
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
-        {
-            player.unit.addAccelerationSideways(-4);
-        }
-
-#pragma endregion
-
-#pragma region mouseSteering
-
-        float mouseCenterOffset = sf::Mouse::getPosition(window).x - windowCenter.x;
-
-        player.unit.addTorque(mouseCenterOffset/70);
-
-        if (mouseCenterOffset > 0)
-        {
-            if (mouseCenterOffset > 222)
-            {
-                sf::Mouse::setPosition(sf::Vector2i(windowCenter.x+222,window.getSize().y/2), window);
-            }
-            else
-            {
-                sf::Mouse::setPosition(sf::Vector2i(sf::Mouse::getPosition(window).x-3-mouseCenterOffset/60,window.getSize().y/2), window);
-            }
-        }
-        if (mouseCenterOffset < 0)
-        {
-            if (mouseCenterOffset < -222)
-            {
-                sf::Mouse::setPosition(sf::Vector2i(windowCenter.x-222,window.getSize().y/2), window);
-            }
-            else
-            {
-                sf::Mouse::setPosition(sf::Vector2i(sf::Mouse::getPosition(window).x+3-mouseCenterOffset/60,window.getSize().y/2), window);
-            }
-        }
-        mouseCenterOffset = 0;
-
-#pragma endregion
-
-#pragma region cameraMovement
-
-        float angle = player.unit.getRotation() - view.getRotation() ;
-        sf::Vector2f deltaPosition = player.unit.getPosition() - view.getCenter();
-
-        view.move(deltaPosition.x  - playerCameraOffset*sin(-angle * M_PI / 180.0), deltaPosition.y  - playerCameraOffset*cos(-angle * M_PI / 180.0));
-
-        float oldrotation = view.getRotation();
-        view.setRotation(player.unit.getRotation());
-
-        window.setView(view);
-        view.setRotation(oldrotation);
-
-#pragma endregion
-
-#pragma region backgroundUpdate
+#pragma region backgroundDrawing
 
         window.clear(sf::Color(42,45,51));
         window.draw(border);
         for (auto &bg : backgrounds) window.draw(bg);
 
-        for (auto ita = animations.begin(); ita != animations.end(); ++ita)
-        {
-            ita->update();
-            if (ita->getCounter()>0)
-            {
-                window.draw(*ita);
-            }
-            else if ((animations.size()>1) && (ita->getCounter()<0))
-            {
-                ita = animations.erase(ita);
-            }
-        }
+#pragma endregion
 
+        if (gameRunning) {
+
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape))
+            {
+                if (escNotClicked)
+                {
+                    if (gamePaused){
+                        gamePaused = false;
+                    }
+                    else{
+                        gamePaused = true;
+                    }
+                    escNotClicked = false;
+                }
+            } else{
+                escNotClicked = true;
+            }
+
+#pragma region keyboardSteering
+
+            if (!(gamePaused) && (player.hp>0)) {
+
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space) ||
+                    sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+                    if (readyToShoot) {
+                        bulletSound.stop();
+                        playerBullets.emplace_back(bulletElement{
+                                Bullet(player.unit.getPosition(), player.unit.getRotation(), 20, playerBulletTexture),
+                                0, shipType::player});
+
+                        bulletSound.play();
+
+                        readyToShoot = false;
+                    }
+                } else {
+                    readyToShoot = true;
+                }
+
+
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)) {
+                    player.unit.addAccelerationStraight(7);
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) {
+                    player.unit.addAccelerationStraight(-4);
+                }
+
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D)) {
+                    player.unit.addAccelerationSideways(4);
+                } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) {
+                    player.unit.addAccelerationSideways(-4);
+                }
+            }
 
 #pragma endregion
 
-#pragma region healthBarUpdate
+#pragma region mouseSteering
 
-        for (auto itb = enemyBullets.begin(); itb != enemyBullets.end(); ++itb)
-        {
-            if (collisionDetectionBullet(player,*itb))
-            {
-                itb->bullet.setPosition(player.unit.getPosition() + sf::Vector2f(9999,9999));
-                itb->clock = 270;
-                switch (itb->type)
-                {
-                    case shipType::light: {player.hp -= 10; break;}
-                    case shipType::medium: {player.hp -= 16; break;}
-                    case shipType::heavy: {player.hp -= 30; break;}
-                    case shipType::boss: {player.hp -= 70; break;}
+            if (!(gamePaused) && (player.hp>0)) {
+
+                float mouseCenterOffset = sf::Mouse::getPosition(window).x - windowCenter.x;
+
+                player.unit.addTorque(mouseCenterOffset / 70);
+
+                if (mouseCenterOffset > 0) {
+                    if (mouseCenterOffset > 222) {
+                        sf::Mouse::setPosition(sf::Vector2i(windowCenter.x + 222, window.getSize().y / 2), window);
+                    } else {
+                        sf::Mouse::setPosition(
+                                sf::Vector2i(sf::Mouse::getPosition(window).x - 3 - mouseCenterOffset / 60,
+                                             window.getSize().y / 2), window);
+                    }
                 }
-
+                if (mouseCenterOffset < 0) {
+                    if (mouseCenterOffset < -222) {
+                        sf::Mouse::setPosition(sf::Vector2i(windowCenter.x - 222, window.getSize().y / 2), window);
+                    } else {
+                        sf::Mouse::setPosition(
+                                sf::Vector2i(sf::Mouse::getPosition(window).x + 3 - mouseCenterOffset / 60,
+                                             window.getSize().y / 2), window);
+                    }
+                }
+                mouseCenterOffset = 0;
             }
-        }
 
-        if ((player.unit.right()>border.getGlobalBounds().left + border.getGlobalBounds().width) ||
-                (player.unit.bottom()>border.getGlobalBounds().top + border.getGlobalBounds().height) ||
-                (player.unit.left()<border.getGlobalBounds().left || player.unit.top()<border.getGlobalBounds().top))
-        {
-            player.hp--;
-        }
+#pragma endregion
+
+#pragma region cameraMovement
+
+            float angle = player.unit.getRotation() - view.getRotation();
+            sf::Vector2f deltaPosition = player.unit.getPosition() - view.getCenter();
+
+            view.move(deltaPosition.x - playerCameraOffset * sin(-angle * M_PI / 180.0),
+                      deltaPosition.y - playerCameraOffset * cos(-angle * M_PI / 180.0));
+
+            float oldrotation = view.getRotation();
+            view.setRotation(player.unit.getRotation());
+
+            window.setView(view);
+            view.setRotation(oldrotation);
+
+#pragma endregion
+
+#pragma region shipExplosionAnimations
+
+            if (!(gamePaused)) {
+                for (auto ita = animations.begin(); ita != animations.end(); ++ita) {
+                    ita->update();
+                    if (ita->getCounter() > 0) {
+                        window.draw(*ita);
+                    } else if ((animations.size() > 1) && (ita->getCounter() < 0)) {
+                        ita = animations.erase(ita);
+                    }
+                }
+            }
+
+#pragma endregion
+
+#pragma region updateHUD
+
+            if (true) {
+
+                for (auto itb = enemyBullets.begin(); itb != enemyBullets.end(); ++itb) {
+                    if (collisionDetectionBullet(player, *itb)) {
+                        itb->bullet.setPosition(player.unit.getPosition() + sf::Vector2f(9999, 9999));
+                        itb->clock = 270;
+                        switch (itb->type) {
+                            case shipType::light: {
+                                player.hp -= 10;
+                                break;
+                            }
+                            case shipType::medium: {
+                                player.hp -= 16;
+                                break;
+                            }
+                            case shipType::heavy: {
+                                player.hp -= 30;
+                                break;
+                            }
+                            case shipType::boss: {
+                                player.hp -= 70;
+                                break;
+                            }
+                        }
+
+                    }
+                }
+                  if (!(border.getGlobalBounds().contains(player.unit.getPosition()))) {
+                      player.hp--;
+                  }
+
+                if (player.hp < 0) {
+                    player.hp = 0;
+                    enemyExplosionSound.stop();
+                    enemyExplosionSound.setVolume(100);
+                    animations.emplace_back(player.unit.getPosition(), 0.76f, 2, blowUpTextures);
+                    enemyExplosionSound.play();
+                }
+                healthBar.setRotation(player.unit.getRotation() - 90);
+                healthBar.setPosition(player.unit.getPosition());
+                healthStatus.setSize(sf::Vector2f(20 * (zoom + 1), player.hp * (zoom + 1)));
+                healthStatus.setRotation(player.unit.getRotation() - 90);
+                healthStatus.setPosition(player.unit.getPosition());
+
+                scoreText.setPosition(player.unit.getPosition());
+                scoreText.setRotation(player.unit.getRotation());
+                scoreText.setString("Score: " + std::to_string(score));
+
+                gamePausedText.setOrigin(gamePausedText.getLocalBounds().width/2,400);
+                gamePausedText.setPosition(player.unit.getPosition());
+                gamePausedText.setRotation(player.unit.getRotation());
+            }
 
 
-        if (player.hp<0)
-        {
-            player.hp = 0;
-            enemyExplosionSound.stop();
-            enemyExplosionSound.setVolume(100);
-            animations.emplace_back(player.unit.getPosition(),0.76f,2,blowUpTextures);
-            enemyExplosionSound.play();
-        }
-        healthBar.setRotation(player.unit.getRotation()-90);
-        healthBar.setPosition(player.unit.getPosition());
-        healthStatus.setSize(sf::Vector2f(20 * (zoom+1),player.hp * (zoom+1)));
-        healthStatus.setRotation(player.unit.getRotation()-90);
-        healthStatus.setPosition(player.unit.getPosition());
 
 #pragma endregion
 
 #pragma region enemySpawning
 
-        if (enemies.size()<6)
-        {
-            int temp_random =1+ rand() % 101;
-            if (temp_random < 32) {
-                enemies.emplace_back(shipElement{Unit(player.unit.getPosition() +
-                                                      sf::Vector2f(-3000 * (zoom + 1) + rand() % 6000 * (zoom + 1),
-                                                                   -3000 * (zoom + 1) + rand() % 6000 * (zoom + 1)),
-                                                      enemy1Texture), 30, shipType::light});
-            }
-            else if (temp_random < 70) {
-                enemies.emplace_back(shipElement{Unit(player.unit.getPosition() +
-                                                      sf::Vector2f(-3000 * (zoom + 1) + rand() % 6000 * (zoom + 1),
-                                                                   -3000 * (zoom + 1) + rand() % 6000 * (zoom + 1)),
-                                                      enemy2Texture), 40, shipType::medium});
-            }
-            else {
-                enemies.emplace_back(shipElement{Unit(player.unit.getPosition() +
-                                                      sf::Vector2f(-3000 * (zoom + 1) + rand() % 6000 * (zoom + 1),
-                                                                   -3000 * (zoom + 1) + rand() % 6000 * (zoom + 1)),
-                                                      enemy3Texture), 60, shipType::heavy});
-            }
-            enemiesSpawned++;
+            if (!(gamePaused)) {
+                if (enemies.size() < 6) {
+                    int temp_random = 1 + rand() % 101;
+                    if (temp_random < 32) {
+                        enemies.emplace_back(shipElement{Unit(player.unit.getPosition() +
+                                                              sf::Vector2f(
+                                                                      -3000 * (zoom + 1) + rand() % 6000 * (zoom + 1),
+                                                                      -3000 * (zoom + 1) + rand() % 6000 * (zoom + 1)),
+                                                              enemy1Texture), 30, shipType::light});
+                    } else if (temp_random < 70) {
+                        enemies.emplace_back(shipElement{Unit(player.unit.getPosition() +
+                                                              sf::Vector2f(
+                                                                      -3000 * (zoom + 1) + rand() % 6000 * (zoom + 1),
+                                                                      -3000 * (zoom + 1) + rand() % 6000 * (zoom + 1)),
+                                                              enemy2Texture), 40, shipType::medium});
+                    } else {
+                        enemies.emplace_back(shipElement{Unit(player.unit.getPosition() +
+                                                              sf::Vector2f(
+                                                                      -3000 * (zoom + 1) + rand() % 6000 * (zoom + 1),
+                                                                      -3000 * (zoom + 1) + rand() % 6000 * (zoom + 1)),
+                                                              enemy3Texture), 60, shipType::heavy});
+                    }
+                    enemiesSpawned++;
 
-            if (enemiesSpawned % 10 == 0) {
-                enemies.emplace_back(shipElement{Unit(player.unit.getPosition() +
-                                                      sf::Vector2f(-3000 * (zoom + 1) + rand() % 6000 * (zoom + 1),
-                                                                   -3000 * (zoom + 1) + rand() % 6000 * (zoom + 1)),
-                                                      bossTexture), 200, shipType::boss});
+                    if (enemiesSpawned % 16 == 0) {
+                        enemies.emplace_back(shipElement{Unit(player.unit.getPosition() +
+                                                              sf::Vector2f(
+                                                                      -3000 * (zoom + 1) + rand() % 6000 * (zoom + 1),
+                                                                      -3000 * (zoom + 1) + rand() % 6000 * (zoom + 1)),
+                                                              bossTexture), 200, shipType::boss});
+                    }
+                }
             }
-        }
-
 
 
 #pragma endregion
 
 #pragma region enemyUpdate
 
-        for (auto it = enemies.begin(); it != enemies.end(); ++it)
-        {
-            float wantedRotation = atan2f(player.unit.getPosition().y-it->unit.getPosition().y, player.unit.getPosition().x-it->unit.getPosition().x) * 180 /M_PI + 90;
-            float enemyRotation = it->unit.getRotation();
-            if (enemyRotation>180)
-            {
-                enemyRotation = enemyRotation-360;
-            }
-            if (wantedRotation>180)
-            {
-                wantedRotation = wantedRotation-360;
-            }
-            float explodeSize;
+            if (!(gamePaused)) {
 
-            switch (it->type) {
-                case shipType::light:
-                {
-                    if (enemyRotation<wantedRotation)
-                    {
-                        it->unit.addTorque(5);
+                for (auto it = enemies.begin(); it != enemies.end(); ++it) {
+                    float wantedRotation = atan2f(player.unit.getPosition().y - it->unit.getPosition().y,
+                                                  player.unit.getPosition().x - it->unit.getPosition().x) * 180 / M_PI +
+                                           90;
+                    float enemyRotation = it->unit.getRotation();
+                    if (enemyRotation > 180) {
+                        enemyRotation = enemyRotation - 360;
                     }
-                    else
-                    {
-                        it->unit.addTorque(-5);
+                    if (wantedRotation > 180) {
+                        wantedRotation = wantedRotation - 360;
                     }
-                    if ((abs(player.unit.getPosition().y-it->unit.getPosition().y) > 500) || (abs(player.unit.getPosition().x-it->unit.getPosition().x) > 500))
-                    {
-                        it->unit.addAccelerationStraight(rand() % 20);
-                    }
-                    if (!(rand() % 33))
-                    {
-                        enemyBulletSound.stop();
-                        enemyBullets.emplace_back(bulletElement{Bullet(it->unit.getPosition(), it->unit.getRotation(), 20, enemyBullet1Texture),250, shipType::light});
-                        enemyBulletSound.play();
-                    }
-                    explodeSize = 1.4;
+                    float explodeSize;
+                    int scoreForKill;
 
-                    break;
-                }
-                case shipType::medium:
-                {
-                    if (enemyRotation<wantedRotation)
-                    {
-                        it->unit.addTorque(3);
-                    }
-                    else
-                    {
-                        it->unit.addTorque(-3);
-                    }
-                    if ((abs(player.unit.getPosition().y-it->unit.getPosition().y) > 640) || (abs(player.unit.getPosition().x-it->unit.getPosition().x) > 640))
-                    {
-                        it->unit.addAccelerationStraight(rand() % 12);
-                    }
-                    if (!(rand() % 45))
-                    {
-                        enemyBulletSound.stop();
-                        enemyBullets.emplace_back(bulletElement{Bullet(it->unit.getPosition(), it->unit.getRotation(), 11, enemyBullet2Texture),160, shipType::medium});
-                        enemyBulletSound.play();
-                    }
-                    explodeSize = 1.9;
-                    break;
-                }
-                case shipType::heavy:
-                {
-                    if (enemyRotation<wantedRotation)
-                    {
-                        it->unit.addTorque(1);
-                    }
-                    else
-                    {
-                        it->unit.addTorque(-1);
-                    }
-                    if ((abs(player.unit.getPosition().y-it->unit.getPosition().y) > 800) || (abs(player.unit.getPosition().x-it->unit.getPosition().x) > 800))
-                    {
-                        it->unit.addAccelerationStraight(rand() % 8);
-                    }
-                    if (!(rand() % 90))
-                    {
-                        enemyBulletSound.stop();
-                        enemyBullets.emplace_back(bulletElement{Bullet(it->unit.getPosition(), it->unit.getRotation(), 10, enemyBullet3Texture),0, shipType::heavy});
-                        enemyBulletSound.play();
-                    }
-                    explodeSize = 2.4;
-                    break;
-                }
-                case shipType::boss:
-                {
-                    if (enemyRotation<wantedRotation)
-                    {
-                        it->unit.addTorque(0.5);
-                    }
-                    else
-                    {
-                        it->unit.addTorque(-0.5);
-                    }
-                    if ((abs(player.unit.getPosition().y-it->unit.getPosition().y) > 800) || (abs(player.unit.getPosition().x-it->unit.getPosition().x) > 800))
-                    {
-                        it->unit.addAccelerationStraight(rand() % 4);
-                    }
-                    if (!(rand() % 100))
-                    {
-                        enemyBulletSound.stop();
-                        enemyBullets.emplace_back(bulletElement{Bullet(it->unit.getPosition(), it->unit.getRotation(), 6, enemyBulletBossTexture),0, shipType::boss});
-                        enemyBulletSound.play();
+                    switch (it->type) {
+                        case shipType::light: {
+                            if (enemyRotation < wantedRotation) {
+                                it->unit.addTorque(5);
+                            } else {
+                                it->unit.addTorque(-5);
+                            }
+                            if ((abs(player.unit.getPosition().y - it->unit.getPosition().y) > 500) ||
+                                (abs(player.unit.getPosition().x - it->unit.getPosition().x) > 500)) {
+                                it->unit.addAccelerationStraight(rand() % 20);
+                            }
+                            if (!(rand() % 33)) {
+                                enemyBulletSound.stop();
+                                enemyBullets.emplace_back(bulletElement{
+                                        Bullet(it->unit.getPosition(), it->unit.getRotation(), 20, enemyBullet1Texture),
+                                        250, shipType::light});
+                                enemyBulletSound.play();
+                            }
+                            explodeSize = 1.4;
+                            scoreForKill = 10;
+                            break;
+                        }
+                        case shipType::medium: {
+                            if (enemyRotation < wantedRotation) {
+                                it->unit.addTorque(3);
+                            } else {
+                                it->unit.addTorque(-3);
+                            }
+                            if ((abs(player.unit.getPosition().y - it->unit.getPosition().y) > 640) ||
+                                (abs(player.unit.getPosition().x - it->unit.getPosition().x) > 640)) {
+                                it->unit.addAccelerationStraight(rand() % 12);
+                            }
+                            if (!(rand() % 45)) {
+                                enemyBulletSound.stop();
+                                enemyBullets.emplace_back(bulletElement{
+                                        Bullet(it->unit.getPosition(), it->unit.getRotation(), 11, enemyBullet2Texture),
+                                        160, shipType::medium});
+                                enemyBulletSound.play();
+                            }
+                            explodeSize = 1.9;
+                            scoreForKill = 15;
+                            break;
+                        }
+                        case shipType::heavy: {
+                            if (enemyRotation < wantedRotation) {
+                                it->unit.addTorque(1);
+                            } else {
+                                it->unit.addTorque(-1);
+                            }
+                            if ((abs(player.unit.getPosition().y - it->unit.getPosition().y) > 800) ||
+                                (abs(player.unit.getPosition().x - it->unit.getPosition().x) > 800)) {
+                                it->unit.addAccelerationStraight(rand() % 8);
+                            }
+                            if (!(rand() % 90)) {
+                                enemyBulletSound.stop();
+                                enemyBullets.emplace_back(bulletElement{
+                                        Bullet(it->unit.getPosition(), it->unit.getRotation(), 10, enemyBullet3Texture),
+                                        0, shipType::heavy});
+                                enemyBulletSound.play();
+                            }
+                            explodeSize = 2.4;
+                            scoreForKill = 20;
+                            break;
+                        }
+                        case shipType::boss: {
+                            if (enemyRotation < wantedRotation) {
+                                it->unit.addTorque(0.5);
+                            } else {
+                                it->unit.addTorque(-0.5);
+                            }
+                            if ((abs(player.unit.getPosition().y - it->unit.getPosition().y) > 800) ||
+                                (abs(player.unit.getPosition().x - it->unit.getPosition().x) > 800)) {
+                                it->unit.addAccelerationStraight(rand() % 4);
+                            }
+                            if (!(rand() % 100)) {
+                                enemyBulletSound.stop();
+                                enemyBullets.emplace_back(bulletElement{
+                                        Bullet(it->unit.getPosition(), it->unit.getRotation(), 6,
+                                               enemyBulletBossTexture), 0, shipType::boss});
+                                enemyBulletSound.play();
 
+                            }
+                            explodeSize = 4;
+                            scoreForKill = 50;
+                            break;
+                        }
                     }
-                    explodeSize = 4;
-                    break;
-                }
-            }
-            enemyBulletSound.setVolume(explodeSize*25/2 +50);
-            it->unit.update();
+                    enemyBulletSound.setVolume(explodeSize * 25 / 2 + 50);
+                    it->unit.update();
 
-            for (auto itb = playerBullets.begin(); itb != playerBullets.end(); ++itb) {
+                    for (auto itb = playerBullets.begin(); itb != playerBullets.end(); ++itb) {
 
-                if (collisionDetectionBullet(*it,*itb))
-                {
-                    it->hp -= 10;
-                    if (it->hp <= 0)
-                    {
-                        enemyExplosionSound.stop();
-                        enemyExplosionSound.setVolume(explodeSize*25);
-                        animations.emplace_back(it->unit.getPosition(),0.76f,explodeSize,blowUpTextures);
-                        enemyExplosionSound.play();
-                        it = enemies.erase(it);
+                        if (collisionDetectionBullet(*it, *itb)) {
+                            it->hp -= 10;
+                            if (it->hp <= 0) {
+                                enemyExplosionSound.stop();
+                                enemyExplosionSound.setVolume(explodeSize * 25);
+                                animations.emplace_back(it->unit.getPosition(), 0.76f, explodeSize, blowUpTextures);
+                                enemyExplosionSound.play();
+                                it = enemies.erase(it);
+                                score += scoreForKill;
+                            }
+
+                            itb->bullet.setPosition(player.unit.getPosition() + sf::Vector2f(9999, 9999));
+                            itb->clock = 200;
+                        }
                     }
-
-                    itb->bullet.setPosition(player.unit.getPosition() + sf::Vector2f(9999,9999));
-                    itb->clock = 200;
                 }
             }
-        }
-
-        for (auto &enemy : enemies)
-        {
-            window.draw(enemy.unit);
-        }
 
 #pragma endregion
 
-        bulletsErasingOrDrawing(playerBullets, window);
-        bulletsErasingOrDrawing(enemyBullets, window);
 
-        player.unit.update();
-        window.draw(player.unit);
+            if (!(gamePaused)) {
 
-        window.draw(healthBar);
-        window.draw(healthStatus);
+                bulletsUpdate(playerBullets, window);
+                bulletsUpdate(enemyBullets, window);
+                player.unit.update();
+
+            }
 
 
-        window.draw(sf::Text("21:37",font,30));
+            for (auto &bullet : enemyBullets) {
+                window.draw(bullet.bullet);
+            }
+            for (auto &bullet : playerBullets) {
+                window.draw(bullet.bullet);
+            }
+
+
+            for (auto &enemy : enemies) {
+                window.draw(enemy.unit);
+
+            }
+
+
+            window.draw(player.unit);
+            window.draw(healthBar);
+            window.draw(healthStatus);
+            window.draw(scoreText);
+
+
+            if (gamePaused) {
+
+                pauseDimmer.setPosition(player.unit.getPosition());
+
+                window.draw(gamePausedText);
+                window.draw(pauseDimmer);
+
+            }
+
+
+        }
+        else
+        {
+            window.setView(menuView);
+            mainMenu.update(sf::Mouse::getPosition(window));
+            window.draw(mainMenu);
+
+            if (mainMenu.getChosenAction() == MainMenu::actions::Quit){
+                window.close();
+            }
+            else if (mainMenu.getChosenAction() == MainMenu::actions::Play){
+                gameRunning = true;
+                window.setMouseCursorVisible(false);
+            }
+        }
 
         window.display();
 
