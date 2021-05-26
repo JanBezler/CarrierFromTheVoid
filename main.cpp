@@ -7,6 +7,7 @@
 #include <algorithm>
 #include "Animation.h"
 #include "MainMenu.h"
+#include "Particle.h"
 
 
 #pragma region enumsAndStructures
@@ -32,6 +33,7 @@ struct shipElement
     Unit unit;
     int hp;
     shipType type;
+    std::vector<Particle> particles;
 };
 
 #pragma endregion
@@ -63,13 +65,19 @@ void bulletsUpdate(std::vector<bulletElement> &vbel, sf::RenderWindow &w)
 
 int main()
 {
+
+#pragma region declarations
+
     bool gameRunning = false;
     bool gamePaused = false;
     bool escNotClicked = true;
+    bool drawingPlayer = false;
     int enemiesSpawned = 0;
     bool readyToShoot = true;
+    bool isPlayerAccelerating;
     int powerUpTimer = 0;
     int score = 0;
+    int gameOverCounter = 0;
     std::vector<sf::Texture> blowUpTextures;
     std::vector<bulletElement> enemyBullets;
     std::vector<bulletElement> playerBullets;
@@ -77,7 +85,7 @@ int main()
     std::vector<shipElement> enemies;
     std::vector<Animation> animations;
 
-
+#pragma endregion
 
 
 #pragma region loadingAssets
@@ -353,17 +361,22 @@ int main()
                     readyToShoot = true;
                 }
 
+                isPlayerAccelerating = false;
 
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)) {
                     player.unit.addAccelerationStraight(7);
+                    isPlayerAccelerating = true;
                 } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) {
                     player.unit.addAccelerationStraight(-4);
+                    isPlayerAccelerating = true;
                 }
 
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D)) {
                     player.unit.addAccelerationSideways(4);
+                    isPlayerAccelerating = true;
                 } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) {
                     player.unit.addAccelerationSideways(-4);
+                    isPlayerAccelerating = true;
                 }
             }
 
@@ -464,12 +477,23 @@ int main()
                       player.hp--;
                   }
 
+
                 if (player.hp < 0) {
                     player.hp = 0;
-                    enemyExplosionSound.stop();
-                    enemyExplosionSound.setVolume(100);
-                    animations.emplace_back(player.unit.getPosition(), 0.76f, 2, blowUpTextures);
-                    enemyExplosionSound.play();
+
+                    if (drawingPlayer){
+                        enemyExplosionSound.stop();
+                        enemyExplosionSound.setVolume(100);
+                        animations.emplace_back(player.unit.getPosition(), 0.76f, 2, blowUpTextures);
+                        enemyExplosionSound.play();
+                        drawingPlayer = false;
+                    }else if (gameOverCounter>120){
+                        gamePaused = true;
+                    }
+                    else{
+                        gameOverCounter++;
+                    }
+
                 }
                 healthBar.setRotation(player.unit.getRotation() - 90);
                 healthBar.setPosition(player.unit.getPosition());
@@ -557,6 +581,7 @@ int main()
                             if ((abs(player.unit.getPosition().y - it->unit.getPosition().y) > 500) ||
                                 (abs(player.unit.getPosition().x - it->unit.getPosition().x) > 500)) {
                                 it->unit.addAccelerationStraight(rand() % 20);
+                                it->particles.emplace_back(Particle(it->unit.getPosition(),10,sf::Color(245,230,230)));
                             }
                             if (!(rand() % 33)) {
                                 enemyBulletSound.stop();
@@ -578,6 +603,7 @@ int main()
                             if ((abs(player.unit.getPosition().y - it->unit.getPosition().y) > 640) ||
                                 (abs(player.unit.getPosition().x - it->unit.getPosition().x) > 640)) {
                                 it->unit.addAccelerationStraight(rand() % 12);
+                                it->particles.emplace_back(Particle(it->unit.getPosition(),15,sf::Color(245,220,220)));
                             }
                             if (!(rand() % 45)) {
                                 enemyBulletSound.stop();
@@ -599,6 +625,7 @@ int main()
                             if ((abs(player.unit.getPosition().y - it->unit.getPosition().y) > 800) ||
                                 (abs(player.unit.getPosition().x - it->unit.getPosition().x) > 800)) {
                                 it->unit.addAccelerationStraight(rand() % 8);
+                                it->particles.emplace_back(Particle(it->unit.getPosition(),20,sf::Color(255,220,220)));
                             }
                             if (!(rand() % 90)) {
                                 enemyBulletSound.stop();
@@ -620,6 +647,7 @@ int main()
                             if ((abs(player.unit.getPosition().y - it->unit.getPosition().y) > 800) ||
                                 (abs(player.unit.getPosition().x - it->unit.getPosition().x) > 800)) {
                                 it->unit.addAccelerationStraight(rand() % 4);
+                                it->particles.emplace_back(Particle(it->unit.getPosition(),30,sf::Color(255,200,200)));
                             }
                             if (!(rand() % 100)) {
                                 enemyBulletSound.stop();
@@ -634,8 +662,18 @@ int main()
                             break;
                         }
                     }
+
                     enemyBulletSound.setVolume(explodeSize * 25 / 2 + 50);
                     it->unit.update();
+
+                    if (it->particles.size() > 100){
+                        it->particles.begin() = it->particles.erase(it->particles.begin());
+                    }
+
+                    for (auto &particle : it->particles){
+                        particle.update();
+                    }
+
 
                     for (auto itb = playerBullets.begin(); itb != playerBullets.end(); ++itb) {
 
@@ -659,6 +697,7 @@ int main()
 
 #pragma endregion
 
+#pragma region playerUpdate
 
             if (!(gamePaused)) {
 
@@ -666,8 +705,22 @@ int main()
                 bulletsUpdate(enemyBullets, window);
                 player.unit.update();
 
+                if (isPlayerAccelerating && drawingPlayer){
+                    float playerRotation = (player.unit.getRotation() + 90) * M_PI / 180.0;
+                    player.particles.emplace_back(Particle(player.unit.getPosition() +
+                                        sf::Vector2f(cosf(playerRotation) * 30,sinf(playerRotation) * 30),
+                                        16, sf::Color(220, 220, 250)));
+                }
+
+                for (auto &particle : player.particles){
+                    particle.update();
+                }
+
             }
 
+#pragma endregion
+
+#pragma region drawing
 
             for (auto &bullet : enemyBullets) {
                 window.draw(bullet.bullet);
@@ -678,12 +731,25 @@ int main()
 
 
             for (auto &enemy : enemies) {
+                for (auto &particle : enemy.particles){
+                    window.draw(particle);
+                }
                 window.draw(enemy.unit);
 
             }
 
+            if (player.particles.size() > 100){
+                player.particles.begin() = player.particles.erase(player.particles.begin());
+            }
 
-            window.draw(player.unit);
+            for (auto &particle : player.particles){
+                window.draw(particle);
+            }
+
+            if (drawingPlayer){
+                window.draw(player.unit);
+            }
+
             window.draw(healthBar);
             window.draw(healthStatus);
             window.draw(scoreText);
@@ -698,8 +764,12 @@ int main()
 
             }
 
+#pragma endregion
 
         }
+
+#pragma region menus
+
         else
         {
             window.setView(menuView);
@@ -711,11 +781,14 @@ int main()
             }
             else if (mainMenu.getChosenAction() == MainMenu::actions::Play){
                 gameRunning = true;
+                drawingPlayer = true;
                 window.setMouseCursorVisible(false);
             }
         }
 
         window.display();
+
+#pragma endregion
 
     }
 
