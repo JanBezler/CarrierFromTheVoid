@@ -20,6 +20,7 @@ private:
     button title;
     button play;
     button quit;
+    button hint;
 
     actions chosenAction;
 

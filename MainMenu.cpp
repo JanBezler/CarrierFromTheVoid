@@ -8,18 +8,23 @@ MainMenu::MainMenu(sf::Vector2f sizeOfWindow, const sf::Font & font)
     title = button{"Title", sf::Text("Carrier From The Void", font, 50), sf::RectangleShape()};
     play = button{"Play", sf::Text("Play!", font, 30), sf::RectangleShape()};
     quit = button{"Quit", sf::Text("Quit Game", font, 30), sf::RectangleShape()};
+    hint = button{"Hint", sf::Text("Moving: WSAD + mouse\nShoot: LMB or space\nPause: ESC", font, 24), sf::RectangleShape()};
 
     play.buttonBackground.setSize(sf::Vector2f(play.buttonText.getLocalBounds().width + (2 * play.buttonText.getLocalBounds().height), play.buttonText.getLocalBounds().height * 3));
     quit.buttonBackground.setSize(sf::Vector2f(quit.buttonText.getLocalBounds().width + (2 * quit.buttonText.getLocalBounds().height), quit.buttonText.getLocalBounds().height * 3));
 
     title.buttonText.setOrigin(sf::Vector2f(title.buttonText.getLocalBounds().width / 2, title.buttonText.getLocalBounds().height));
+    hint.buttonText.setOrigin(sf::Vector2f(title.buttonText.getLocalBounds().width / 2, title.buttonText.getLocalBounds().height));
     play.buttonText.setOrigin(sf::Vector2f(play.buttonText.getLocalBounds().width / 2, play.buttonText.getLocalBounds().height));
     quit.buttonText.setOrigin(sf::Vector2f(quit.buttonText.getLocalBounds().width / 2, quit.buttonText.getLocalBounds().height));
+
+    hint.buttonText.setFillColor(hint.buttonText.getFillColor()-sf::Color(0,0,0,160));
 
     play.buttonBackground.setOrigin(sf::Vector2f(play.buttonBackground.getLocalBounds().width / 2, play.buttonBackground.getLocalBounds().height / 2));
     quit.buttonBackground.setOrigin(sf::Vector2f(quit.buttonBackground.getLocalBounds().width / 2, quit.buttonBackground.getLocalBounds().height / 2));
 
     title.buttonText.setPosition(sf::Vector2f(0, -windowSize.y/4));
+    hint.buttonText.setPosition(sf::Vector2f(windowSize.x/3, -windowSize.y/8));
     play.buttonText.setPosition(sf::Vector2f(0, 0));
     quit.buttonText.setPosition(sf::Vector2f(0, +windowSize.y/4));
 
@@ -39,6 +44,8 @@ MainMenu::MainMenu(sf::Vector2f sizeOfWindow, const sf::Font & font)
 void MainMenu::draw(sf::RenderTarget& target, sf::RenderStates state) const
 {
     target.draw(title.buttonText, state);
+
+    target.draw(hint.buttonText, state);
 
     target.draw(play.buttonBackground, state);
     target.draw(play.buttonText, state);
