@@ -32,6 +32,8 @@
 *.app
 
 .idea
-cmake*
+out
+_Resharper.Caches
+.vs
 
 cmake_modules

@@ -1,5 +1,7 @@
 #include "Unit.h"
 
+#include <numbers>
+
 void Unit::draw(sf::RenderTarget& target, sf::RenderStates state) const
 {
     target.draw(this->shape, state);
@@ -29,8 +31,8 @@ void Unit::update()
     {
         float rotation = getRotation();
 
-        sf::Vector2f acceleration = {sinf(rotation * M_PI / 180.0) * accelerationStraight / 10 + cosf(rotation * M_PI / 180.0) * accelerationSideways / 10,
-        -cosf(rotation * M_PI / 180.0) * accelerationStraight / 10 + sinf(rotation * M_PI / 180.0) * accelerationSideways / 10};
+        sf::Vector2f acceleration = {sinf(rotation * std::numbers::pi / 180.0) * accelerationStraight / 10 + cosf(rotation * std::numbers::pi / 180.0) * accelerationSideways / 10,
+        -cosf(rotation * std::numbers::pi / 180.0) * accelerationStraight / 10 + sinf(rotation * std::numbers::pi / 180.0) * accelerationSideways / 10};
 
         velocity += acceleration;
     }
@@ -75,13 +77,13 @@ void Unit::rotate(float degree)
 void Unit::moveForwardBackward(float distance)
 {
     float rotation = getRotation();
-    shape.move(sf::Vector2f{cosf(rotation * M_PI / 180.0) * distance, sinf(rotation * M_PI / 180.0) * distance});
+    shape.move(sf::Vector2f{cosf(rotation * std::numbers::pi / 180.0) * distance, sinf(rotation * std::numbers::pi / 180.0) * distance});
 }
 
 void Unit::moveLeftRight(float distance)
 {
     float rotation = getRotation();
-    shape.move(sf::Vector2f{sinf(-rotation * M_PI / 180.0) * distance, cosf(-rotation * M_PI / 180.0) * distance});
+    shape.move(sf::Vector2f{sinf(-rotation * std::numbers::pi / 180.0) * distance, cosf(-rotation * std::numbers::pi / 180.0) * distance});
 }
 
 void Unit::move(sf::Vector2f offset)
