@@ -37,3 +37,5 @@ _Resharper.Caches
 .vs
 
 cmake_modules
+
+cmake-build*

@@ -1,7 +1,5 @@
 #include "Bullet.h"
 
-#include <numbers>
-
 void Bullet::draw(sf::RenderTarget& target, sf::RenderStates state) const
 {
     target.draw(this->shape, state);
@@ -11,7 +9,7 @@ Bullet::Bullet(sf::Vector2f ownerPosition, float ownerRotation, float bulletSpee
 {
     shape.setTexture(texture);
     float rotation = ownerRotation - 4 + rand() % 9;
-    velocity = {sinf(rotation * std::numbers::pi / 180.0) * bulletSpeed, -cosf(rotation * std::numbers::pi / 180.0) * bulletSpeed};
+    velocity = {sinf(rotation * M_PI / 180.0) * bulletSpeed, -cosf(rotation * M_PI / 180.0) * bulletSpeed};
     //velocity += owner.getVelocity();
     shape.setPosition(ownerPosition);
     shape.setScale(0.6,0.6);

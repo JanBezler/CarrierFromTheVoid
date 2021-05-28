@@ -9,10 +9,7 @@
 #include <SFML/Graphics.hpp>
 
 #include <algorithm>
-#include <fstream>
 #include <iostream>
-#include <numbers>
-#include <filesystem>
 
 #pragma region enumsAndStructures
 
@@ -69,8 +66,6 @@ void bulletsUpdate(std::vector<bulletElement> &vbel, sf::RenderWindow &w)
 
 int main()
 {
-
-    std::cout << std::filesystem::current_path().string() << '\n';
 #pragma region declarations
 
     bool gameRunning = false;
@@ -91,7 +86,6 @@ int main()
     std::vector<Animation> animations;
 
 #pragma endregion
-
 
 #pragma region loadingAssets
 
@@ -360,7 +354,7 @@ int main()
 
                         bulletSound.play();
 
-                        readyToShoot = false;
+                        //readyToShoot = false;
                     }
                 } else {
                     readyToShoot = true;
@@ -423,8 +417,8 @@ int main()
             float angle = player.unit.getRotation() - view.getRotation();
             sf::Vector2f deltaPosition = player.unit.getPosition() - view.getCenter();
 
-            view.move(deltaPosition.x - playerCameraOffset * sin(-angle * std::numbers::pi / 180.0),
-                      deltaPosition.y - playerCameraOffset * cos(-angle * std::numbers::pi / 180.0));
+            view.move(deltaPosition.x - playerCameraOffset * sin(-angle * M_PI / 180.0),
+                      deltaPosition.y - playerCameraOffset * cos(-angle * M_PI / 180.0));
 
             float oldrotation = view.getRotation();
             view.setRotation(player.unit.getRotation());
@@ -446,7 +440,7 @@ int main()
                     }
                     if (ita == animations.end())
                     {
-	                    break;
+	                    ita--;
                     }
 
                 }
@@ -569,7 +563,7 @@ int main()
 
                 for (auto it = enemies.begin(); it != enemies.end(); ++it) {
                     float wantedRotation = atan2f(player.unit.getPosition().y - it->unit.getPosition().y,
-                                                  player.unit.getPosition().x - it->unit.getPosition().x) * 180 / std::numbers::pi +
+                                                  player.unit.getPosition().x - it->unit.getPosition().x) * 180 / M_PI +
                                            90;
                     float enemyRotation = it->unit.getRotation();
                     if (enemyRotation > 180) {
@@ -677,7 +671,7 @@ int main()
                     it->unit.update();
 
                     if (it->particles.size() > 100){
-                        it->particles.begin() = it->particles.erase(it->particles.begin());
+                        it->particles.erase(it->particles.begin());
                     }
 
                     for (auto &particle : it->particles){
@@ -685,21 +679,29 @@ int main()
                     }
 
 
-                    for (auto itb = playerBullets.begin(); itb != playerBullets.end(); ++itb) {
+                    for (auto & playerBullet : playerBullets) {
 
-                        if (collisionDetectionBullet(*it, *itb)) {
+                        if (collisionDetectionBullet(*it, playerBullet)) {
                             it->hp -= 10;
                             if (it->hp <= 0) {
                                 enemyExplosionSound.stop();
                                 enemyExplosionSound.setVolume(explodeSize * 25);
                                 animations.emplace_back(it->unit.getPosition(), 0.76f, explodeSize, blowUpTextures);
                                 enemyExplosionSound.play();
-                                it = enemies.erase(it);
                                 score += scoreForKill;
+
+                                it = enemies.erase(it);
+
+                                if (it == enemies.end())
+                                {
+                                    it--;
+                                }
+
                             }
 
-                            itb->bullet.setPosition(player.unit.getPosition() + sf::Vector2f(9999, 9999));
-                            itb->clock = 200;
+
+                            playerBullet.bullet.setPosition(player.unit.getPosition() + sf::Vector2f(9999, 9999));
+                            playerBullet.clock = 200;
                         }
                     }
                 }
@@ -716,7 +718,7 @@ int main()
                 player.unit.update();
 
                 if (isPlayerAccelerating && drawingPlayer){
-                    float playerRotation = (player.unit.getRotation() + 90) * std::numbers::pi / 180.0;
+                    float playerRotation = (player.unit.getRotation() + 90) * M_PI / 180.0;
                     player.particles.emplace_back(Particle(player.unit.getPosition() +
                                         sf::Vector2f(cosf(playerRotation) * 30,sinf(playerRotation) * 30),
                                         16, sf::Color(220, 220, 250)));
@@ -749,7 +751,7 @@ int main()
             }
 
             if (player.particles.size() > 100){
-                player.particles.begin() = player.particles.erase(player.particles.begin());
+                player.particles.erase(player.particles.begin());
             }
 
             for (auto &particle : player.particles){
