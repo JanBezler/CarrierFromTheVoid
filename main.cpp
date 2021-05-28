@@ -1,14 +1,18 @@
-#include <SFML/Graphics.hpp>
-#include <SFML/Audio.hpp>
-#include "Unit.h"
-#include "Bullet.h"
-#include "Background.h"
-#include <iostream>
-#include <algorithm>
 #include "Animation.h"
+#include "Background.h"
+#include "Bullet.h"
 #include "MainMenu.h"
 #include "Particle.h"
+#include "Unit.h"
 
+#include <SFML/Audio.hpp>
+#include <SFML/Graphics.hpp>
+
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <numbers>
+#include <filesystem>
 
 #pragma region enumsAndStructures
 
@@ -66,6 +70,7 @@ void bulletsUpdate(std::vector<bulletElement> &vbel, sf::RenderWindow &w)
 int main()
 {
 
+    std::cout << std::filesystem::current_path().string() << '\n';
 #pragma region declarations
 
     bool gameRunning = false;
@@ -418,8 +423,8 @@ int main()
             float angle = player.unit.getRotation() - view.getRotation();
             sf::Vector2f deltaPosition = player.unit.getPosition() - view.getCenter();
 
-            view.move(deltaPosition.x - playerCameraOffset * sin(-angle * M_PI / 180.0),
-                      deltaPosition.y - playerCameraOffset * cos(-angle * M_PI / 180.0));
+            view.move(deltaPosition.x - playerCameraOffset * sin(-angle * std::numbers::pi / 180.0),
+                      deltaPosition.y - playerCameraOffset * cos(-angle * std::numbers::pi / 180.0));
 
             float oldrotation = view.getRotation();
             view.setRotation(player.unit.getRotation());
@@ -436,9 +441,14 @@ int main()
                     ita->update();
                     if (ita->getCounter() > 0) {
                         window.draw(*ita);
-                    } else if ((animations.size() > 1) && (ita->getCounter() < 0)) {
+                    } else if (ita->getCounter() < 0) {
                         ita = animations.erase(ita);
                     }
+                    if (ita == animations.end())
+                    {
+	                    break;
+                    }
+
                 }
             }
 
@@ -559,7 +569,7 @@ int main()
 
                 for (auto it = enemies.begin(); it != enemies.end(); ++it) {
                     float wantedRotation = atan2f(player.unit.getPosition().y - it->unit.getPosition().y,
-                                                  player.unit.getPosition().x - it->unit.getPosition().x) * 180 / M_PI +
+                                                  player.unit.getPosition().x - it->unit.getPosition().x) * 180 / std::numbers::pi +
                                            90;
                     float enemyRotation = it->unit.getRotation();
                     if (enemyRotation > 180) {
@@ -706,7 +716,7 @@ int main()
                 player.unit.update();
 
                 if (isPlayerAccelerating && drawingPlayer){
-                    float playerRotation = (player.unit.getRotation() + 90) * M_PI / 180.0;
+                    float playerRotation = (player.unit.getRotation() + 90) * std::numbers::pi / 180.0;
                     player.particles.emplace_back(Particle(player.unit.getPosition() +
                                         sf::Vector2f(cosf(playerRotation) * 30,sinf(playerRotation) * 30),
                                         16, sf::Color(220, 220, 250)));
