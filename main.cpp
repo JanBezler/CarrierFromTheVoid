@@ -2,6 +2,7 @@
 #include "Background.h"
 #include "Bullet.h"
 #include "MainMenu.h"
+#include "DeathMenu.h"
 #include "Particle.h"
 #include "Unit.h"
 
@@ -35,6 +36,11 @@ struct shipElement
     int hp;
     shipType type;
     std::vector<Particle> particles;
+
+    ~shipElement()
+    {
+        particles = std::vector<Particle>{};
+    }
 };
 
 #pragma endregion
@@ -241,7 +247,7 @@ int main()
     float playerCameraOffset = 300;
 
     sf::View view;
-    view.reset(sf::FloatRect(0.f*zoom, 0.f*zoom, 1920.f*(zoom+1), 1080.f*(zoom+1)));
+    view.reset(sf::FloatRect(0.f*zoom, 0.f*zoom, windowCenter.x*2*(zoom+1), windowCenter.y*2*(zoom+1)));
 
     view.setCenter(player.unit.getPosition().x , player.unit.getPosition().y-playerCameraOffset);
 
@@ -252,10 +258,11 @@ int main()
 #pragma endregion
 
     MainMenu mainMenu = MainMenu(sf::Vector2f(window.getSize().x, window.getSize().y),font);
+    DeathMenu deathMenu = DeathMenu(sf::Vector2f(window.getSize().x, window.getSize().y),font);
 
 #pragma region setHUD
 
-    sf::Vector2f healthBarPosition {160 * (3 * zoom+1),850 * (zoom+1)};
+    sf::Vector2f healthBarPosition {160 * (3 * zoom+1),800 * (zoom+1)};
     sf::RectangleShape healthBar = sf::RectangleShape(sf::Vector2f(20 * (zoom+1),360 * (zoom+1)));
     sf::RectangleShape healthStatus = sf::RectangleShape();
     healthBar.setOrigin(healthBarPosition);
@@ -266,7 +273,7 @@ int main()
     healthStatus.setOrigin(healthBarPosition);
 
     sf::Text scoreText = sf::Text("Score: 0",font,30);
-    scoreText.setOrigin(900,800);
+    scoreText.setOrigin(800,800);
 
     sf::Text gamePausedText = sf::Text("GAME PAUSED",font,50);
 
@@ -324,6 +331,10 @@ int main()
 
         if (gameRunning) {
 
+            window.setMouseCursorVisible(false);
+
+#pragma region pause
+
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape))
             {
                 if (escNotClicked)
@@ -340,7 +351,9 @@ int main()
                 escNotClicked = true;
             }
 
-#pragma region keyboardSteering
+#pragma endregion
+
+#pragma region buttonsSteering
 
             if (!(gamePaused) && (player.hp>0)) {
 
@@ -354,7 +367,7 @@ int main()
 
                         bulletSound.play();
 
-                        //readyToShoot = false;
+                        readyToShoot = false;
                     }
                 } else {
                     readyToShoot = true;
@@ -440,7 +453,7 @@ int main()
                     }
                     if (ita == animations.end())
                     {
-	                    ita--;
+	                    break;
                     }
 
                 }
@@ -482,7 +495,7 @@ int main()
                   }
 
 
-                if (player.hp < 0) {
+                if (player.hp <= 0) {
                     player.hp = 0;
 
                     if (drawingPlayer){
@@ -492,7 +505,7 @@ int main()
                         enemyExplosionSound.play();
                         drawingPlayer = false;
                     }else if (gameOverCounter>120){
-                        gamePaused = true;
+                        gameRunning = false;
                     }
                     else{
                         gameOverCounter++;
@@ -582,12 +595,12 @@ int main()
                             } else {
                                 it->unit.addTorque(-5);
                             }
-                            if ((abs(player.unit.getPosition().y - it->unit.getPosition().y) > 500) ||
-                                (abs(player.unit.getPosition().x - it->unit.getPosition().x) > 500)) {
-                                it->unit.addAccelerationStraight(rand() % 20);
+                            if ((std::abs(player.unit.getPosition().y - it->unit.getPosition().y) > 500) ||
+                                (std::abs(player.unit.getPosition().x - it->unit.getPosition().x) > 500)) {
+                                it->unit.addAccelerationStraight(std::rand() % 20);
                                 it->particles.emplace_back(Particle(it->unit.getPosition(),10,sf::Color(245,230,230)));
                             }
-                            if (!(rand() % 33)) {
+                            if (!(std::rand() % 33)) {
                                 enemyBulletSound.stop();
                                 enemyBullets.emplace_back(bulletElement{
                                         Bullet(it->unit.getPosition(), it->unit.getRotation(), 20, enemyBullet1Texture),
@@ -604,12 +617,12 @@ int main()
                             } else {
                                 it->unit.addTorque(-3);
                             }
-                            if ((abs(player.unit.getPosition().y - it->unit.getPosition().y) > 640) ||
-                                (abs(player.unit.getPosition().x - it->unit.getPosition().x) > 640)) {
-                                it->unit.addAccelerationStraight(rand() % 12);
+                            if ((std::abs(player.unit.getPosition().y - it->unit.getPosition().y) > 640) ||
+                                (std::abs(player.unit.getPosition().x - it->unit.getPosition().x) > 640)) {
+                                it->unit.addAccelerationStraight(std::rand() % 12);
                                 it->particles.emplace_back(Particle(it->unit.getPosition(),15,sf::Color(245,220,220)));
                             }
-                            if (!(rand() % 45)) {
+                            if (!(std::rand() % 45)) {
                                 enemyBulletSound.stop();
                                 enemyBullets.emplace_back(bulletElement{
                                         Bullet(it->unit.getPosition(), it->unit.getRotation(), 11, enemyBullet2Texture),
@@ -626,12 +639,12 @@ int main()
                             } else {
                                 it->unit.addTorque(-1);
                             }
-                            if ((abs(player.unit.getPosition().y - it->unit.getPosition().y) > 800) ||
-                                (abs(player.unit.getPosition().x - it->unit.getPosition().x) > 800)) {
-                                it->unit.addAccelerationStraight(rand() % 8);
+                            if ((std::abs(player.unit.getPosition().y - it->unit.getPosition().y) > 800) ||
+                                (std::abs(player.unit.getPosition().x - it->unit.getPosition().x) > 800)) {
+                                it->unit.addAccelerationStraight(std::rand() % 8);
                                 it->particles.emplace_back(Particle(it->unit.getPosition(),20,sf::Color(255,220,220)));
                             }
-                            if (!(rand() % 90)) {
+                            if (!(std::rand() % 90)) {
                                 enemyBulletSound.stop();
                                 enemyBullets.emplace_back(bulletElement{
                                         Bullet(it->unit.getPosition(), it->unit.getRotation(), 10, enemyBullet3Texture),
@@ -648,12 +661,12 @@ int main()
                             } else {
                                 it->unit.addTorque(-0.5);
                             }
-                            if ((abs(player.unit.getPosition().y - it->unit.getPosition().y) > 800) ||
-                                (abs(player.unit.getPosition().x - it->unit.getPosition().x) > 800)) {
-                                it->unit.addAccelerationStraight(rand() % 4);
+                            if ((std::abs(player.unit.getPosition().y - it->unit.getPosition().y) > 800) ||
+                                (std::abs(player.unit.getPosition().x - it->unit.getPosition().x) > 800)) {
+                                it->unit.addAccelerationStraight(std::rand() % 4);
                                 it->particles.emplace_back(Particle(it->unit.getPosition(),30,sf::Color(255,200,200)));
                             }
-                            if (!(rand() % 100)) {
+                            if (!(std::rand() % 100)) {
                                 enemyBulletSound.stop();
                                 enemyBullets.emplace_back(bulletElement{
                                         Bullet(it->unit.getPosition(), it->unit.getRotation(), 6,
@@ -692,17 +705,16 @@ int main()
 
                                 it = enemies.erase(it);
 
-                                if (it == enemies.end())
-                                {
-                                    it--;
-                                }
-
                             }
-
 
                             playerBullet.bullet.setPosition(player.unit.getPosition() + sf::Vector2f(9999, 9999));
                             playerBullet.clock = 200;
+
                         }
+                    }
+
+                    if (it == enemies.end()){
+                        break;
                     }
                 }
             }
@@ -784,18 +796,44 @@ int main()
 
         else
         {
-            window.setView(menuView);
-            mainMenu.update(sf::Mouse::getPosition(window));
-            window.draw(mainMenu);
 
-            if (mainMenu.getChosenAction() == MainMenu::actions::Quit){
-                window.close();
+            window.setMouseCursorVisible(true);
+            window.setView(menuView);
+
+            if (player.hp > 0)
+            {
+                mainMenu.update(sf::Mouse::getPosition(window));
+                window.draw(mainMenu);
+
+                if (mainMenu.getChosenAction() == Menu::actions::Quit){
+                    window.close();
+                }
+                else if (mainMenu.getChosenAction() == Menu::actions::Play){
+                    gameRunning = true;
+                    drawingPlayer = true;
+
+                }
+
+            } else
+            {
+                enemies.clear();
+                deathMenu.update(sf::Mouse::getPosition(window), score);
+                window.draw(deathMenu);
+
+                if (deathMenu.getChosenAction() == Menu::actions::Quit){
+                    window.close();
+                }
+                else if (deathMenu.getChosenAction() == Menu::actions::Play){
+                    gameRunning = true;
+                    drawingPlayer = true;
+                    player.hp = 360;
+                    player.unit.setPosition(sf::Vector2f(0,0));
+                    score = 0;
+                    gameOverCounter = 0;
+                }
             }
-            else if (mainMenu.getChosenAction() == MainMenu::actions::Play){
-                gameRunning = true;
-                drawingPlayer = true;
-                window.setMouseCursorVisible(false);
-            }
+
+
         }
 
         window.display();
