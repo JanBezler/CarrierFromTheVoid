@@ -5,22 +5,32 @@
 
 class Menu: public sf::Drawable {
 
-protected:
-    struct button {
-        std::string name;
-        sf::Text buttonText;
-        sf::RectangleShape buttonBackground;
+public:
+    enum actions
+    {
+        None,
+        Quit,
+        Play
     };
 
 
-    virtual bool mouseOnButton(sf::Vector2f mPos, button);
+protected:
+    sf::Vector2f windowSize;
+    sf::Vector2f mousePosition;
+
+    actions chosenAction;
+
+    static bool mouseOnButton(const sf::Vector2f&, const sf::Text&);
+    static void setOriginOnCenter(sf::Text &);
+    static void setTextColor(sf::Text&, sf::Color = sf::Color::White);
+    static void activateText(sf::Text&);
+    static void deactivateText(sf::Text&);
 
 
 public:
     void draw(sf::RenderTarget& target, sf::RenderStates state) const override;
-    virtual void update();
-
-
+    virtual void update(sf::Vector2i);
+    virtual Menu::actions getChosenAction();
 
  };
 

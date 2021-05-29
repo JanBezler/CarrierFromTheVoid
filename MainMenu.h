@@ -7,35 +7,18 @@
 
 class MainMenu: public Menu {
 
-public:
-
-    enum actions
-    {
-        None,
-        Quit,
-        Play
-    };
-
 private:
-    button title;
-    button play;
-    button quit;
-    button hint;
-
-    actions chosenAction;
-
-protected:
-    sf::Vector2f windowSize;
-    sf::Vector2f mousePosition;
+    sf::Text title;
+    sf::Text play;
+    sf::Text quit;
+    sf::Text hint;
 
 public:
 
-    MainMenu(sf::Vector2f windowSize, const sf::Font & font);
+    MainMenu(sf::Vector2f, const sf::Font &);
 
     void draw(sf::RenderTarget& target, sf::RenderStates state) const override;
     void update(sf::Vector2i positionOfMouse);
-
-    MainMenu::actions getChosenAction();
 
 };
 
