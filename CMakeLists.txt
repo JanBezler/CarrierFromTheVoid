@@ -13,8 +13,3 @@ if (SFML_FOUND)
     target_link_libraries(${PROJECT_NAME} ${SFML_LIBRARIES} ${SFML_DEPENDENCIES})
     include_directories(c:/SFML/include)
 endif()
-# Copy dlls to build
-if(WIN32)
-    file(GLOB BINARY_DEP_DLLS "${SFML_INCLUDE_DIR}/../bin/*.dll")
-    file(COPY ${BINARY_DEP_DLLS} DESTINATION ${CMAKE_BINARY_DIR})
-endif()
