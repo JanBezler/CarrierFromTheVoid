@@ -367,7 +367,7 @@ int main()
 
                         bulletSound.play();
 
-                        readyToShoot = false;
+                        //readyToShoot = false;
                     }
                 } else {
                     readyToShoot = true;
