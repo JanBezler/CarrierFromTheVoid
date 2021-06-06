@@ -367,7 +367,7 @@ int main()
 
                         bulletSound.play();
 
-                        //readyToShoot = false;
+                        readyToShoot = false;
                     }
                 } else {
                     readyToShoot = true;
@@ -574,7 +574,7 @@ int main()
 
             if (!(gamePaused)) {
 
-                for (auto it = enemies.begin(); it != enemies.end(); ++it) {
+                for (auto it = enemies.begin(); it != enemies.end();) {
                     float wantedRotation = atan2f(player.unit.getPosition().y - it->unit.getPosition().y,
                                                   player.unit.getPosition().x - it->unit.getPosition().x) * 180 / M_PI +
                                            90;
@@ -696,26 +696,26 @@ int main()
 
                         if (collisionDetectionBullet(*it, playerBullet)) {
                             it->hp -= 10;
-                            if (it->hp <= 0) {
-                                enemyExplosionSound.stop();
-                                enemyExplosionSound.setVolume(explodeSize * 25);
-                                animations.emplace_back(it->unit.getPosition(), 0.76f, explodeSize, blowUpTextures);
-                                enemyExplosionSound.play();
-                                score += scoreForKill;
-
-                                it = enemies.erase(it);
-
-                            }
-
                             playerBullet.bullet.setPosition(player.unit.getPosition() + sf::Vector2f(9999, 9999));
                             playerBullet.clock = 200;
-
+                            break;
                         }
                     }
 
-                    if (it == enemies.end()){
-                        break;
+                    if (it->hp <= 0) {
+                        enemyExplosionSound.stop();
+                        enemyExplosionSound.setVolume(explodeSize * 25);
+                        animations.emplace_back(it->unit.getPosition(), 0.76f, explodeSize, blowUpTextures);
+                        enemyExplosionSound.play();
+                        score += scoreForKill;
+
+                        it = enemies.erase(it);
+
+
+                    }else{
+                        ++it;
                     }
+
                 }
             }
 
