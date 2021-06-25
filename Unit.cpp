@@ -1,5 +1,9 @@
 #include "Unit.h"
 
+#ifndef M_PI
+#define M_PI = 3.14159265358979323846;
+#endif
+
 void Unit::draw(sf::RenderTarget& target, sf::RenderStates state) const
 {
     target.draw(this->shape, state);

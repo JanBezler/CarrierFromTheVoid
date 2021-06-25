@@ -6,6 +6,10 @@
 #include "Particle.h"
 #include "Unit.h"
 
+#ifndef M_PI
+#define M_PI = 3.14159265358979323846;
+#endif
+
 #include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
 
@@ -69,6 +73,8 @@ void bulletsUpdate(std::vector<bulletElement> &vbel, sf::RenderWindow &w)
 }
 
 #pragma endregion
+
+
 
 int main()
 {
